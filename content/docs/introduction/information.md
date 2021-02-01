@@ -14,7 +14,10 @@ description: >
 
 ## 社区
 
+-  [dapr-cn](https://github.com/dapr-cn) ：Dapr中文社区，专注于dapr的文档、新闻稿本地化、新特性贡献以及中文社区推广
+- [Dapr 中文文档库](https://github.com/dapr-cn/docs):  Dapr 中文文档库，由 [dapr-cn](https://github.com/dapr-cn) 创建并维护的对 [docs.dapr.io](https://docs.dapr.io/) 内容的翻译，旨在为更熟悉中文的开发者提供一些文档上的帮助。
 
+> 备注：由于dapr翻译计划已经启动，我也参与其中，我在学习笔记中翻译的部分官方文档内容都将陆续迁移过去，之后会删除学习笔记中的官方文档翻译内容。
 
 ## 文档
 
