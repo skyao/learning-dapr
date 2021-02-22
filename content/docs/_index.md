@@ -1,6 +1,6 @@
 ---
 title: "Dapr学习笔记"
-linkTitle: "Dapr学习笔记"
+linkTitle: "学习笔记"
 weight: 1
 date: 2021-01-29
 menu:
