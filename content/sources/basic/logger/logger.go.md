@@ -5,8 +5,10 @@ linkTitle: "logger.go"
 weight: 111
 date: 2021-02-27
 description: >
-  Dapr Logger package中的logger.go文件的源码学习
+  定义logger相关的日志类型、schema、日志级别、接口以及保存全局logger列表
 ---
+
+Dapr Logger package中的logger.go文件的源码学习，定义logger相关的日志类型、schema、日志级别、接口以及保存全局logger列表。
 
 ## logger的相关定义
 
@@ -127,7 +129,7 @@ type Logger interface {
 
 ## logger的创建和获取
 
-### 全集 log 列表
+### 全局 logger 列表
 
 ```go
 // globalLoggers is the collection of Dapr Logger that is shared globally.
