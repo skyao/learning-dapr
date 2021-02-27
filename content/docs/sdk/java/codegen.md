@@ -1,7 +1,7 @@
 ---
 title: "Java SDK的proto代码生成"
 linkTitle: "proto代码生成"
-weight: 3102
+weight: 3202
 date: 2021-02-04
 description: >
   介绍Dapr的Java SDK项目中的proto代码生成
@@ -18,9 +18,9 @@ description: >
 
 ## 准备protoc等工具
 
-TODO：稍后整理
+安装Protoc，目前 daprd 要求的版本是 [v3.14.0](https://github.com/protocolbuffers/protobuf/releases/tag/v3.14.0)。sdk 和 daprd保持一致。
 
-待确定： java sdk中使用的protoc版本是多少？还是对版本没要求？
+具体见 [Daprd Proto代码生成]( {{< relref "/docs/daprd/develop/codegen.md" >}})
 
 ## 从proto文件生成Java代码
 
@@ -131,6 +131,8 @@ libprotoc 3.13.0
 
 [INFO] BUILD SUCCESS
 ```
+
+刷新项目，比如 idea 下可以在 java-sdk 根目录下pom.xml上右键 maven -> reload project 。
 
 ### 相关的文件路径小结
 

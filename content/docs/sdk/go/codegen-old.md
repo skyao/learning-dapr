@@ -1,11 +1,17 @@
 ---
-title: "更新protos生成源文件"
-linkTitle: "更新protos生成源文件"
-weight: 3202
+title: "Go SDK的proto代码生成(旧版)"
+linkTitle: "proto代码生成(旧版)"
+weight: 3103
 date: 2021-01-31
 description: >
   Dapr的Go SDK中更新protos生成源文件
 ---
+
+{{% pageinfo %}}
+旧版的proto代码生成，非常麻烦，新版改进之后就不要这么折腾了。
+
+本文归档备用。
+{{% /pageinfo %}}
 
 ## 准备工作
 
