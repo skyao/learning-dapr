@@ -1,6 +1,6 @@
 ---
 type: docs
-title: "dapr_logger.go的源码分析"
+title: "dapr_logger.go的源码学习"
 linkTitle: "dapr_logger.go"
 weight: 112
 date: 2021-02-27
