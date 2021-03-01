@@ -42,7 +42,7 @@ func Commit() string {
 
 Dapr 下的 Makefile 文件中：
 
-```makefile
+```bash
 # git rev-list -1 HEAD 得到的 git commit 的 hash 值
 # 如：63147334aa246d76f9f65708c257460567a1cff4
 GIT_COMMIT  = $(shell git rev-list -1 HEAD)
