@@ -2,7 +2,7 @@
 type: docs
 title: "logger.go的源码学习"
 linkTitle: "logger.go"
-weight: 111
+weight: 211
 date: 2021-02-27
 description: >
   定义logger相关的日志类型、schema、日志级别、接口以及保存全局logger列表

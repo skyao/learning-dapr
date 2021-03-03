@@ -2,7 +2,7 @@
 type: docs
 title: "cors的源码学习"
 linkTitle: "cors"
-weight: 99
+weight: 330
 date: 2021-02-27
 description: >
   Dapr cors package的源码学习

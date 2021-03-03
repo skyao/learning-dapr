@@ -2,7 +2,7 @@
 type: docs
 title: "modes的源码学习"
 linkTitle: "modes"
-weight: 99
+weight: 320
 date: 2021-02-27
 description: >
   Dapr modes package的源码学习

@@ -2,7 +2,7 @@
 type: docs
 title: "dapr_logger.go的源码学习"
 linkTitle: "dapr_logger.go"
-weight: 112
+weight: 212
 date: 2021-02-27
 description: >
   daprLogger 是实际的日志实现

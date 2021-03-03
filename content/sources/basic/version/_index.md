@@ -2,7 +2,7 @@
 type: docs
 title: "version的源码学习"
 linkTitle: "version"
-weight: 99
+weight: 310
 date: 2021-02-27
 description: >
   Dapr version package的源码学习
