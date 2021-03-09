@@ -2,7 +2,7 @@
 type: docs
 title: "Injector的代码实现"
 linkTitle: "代码实现"
-weight: 2102
+weight: 20001
 date: 2021-01-31
 description: >
   Dapr Injector的代码实现
