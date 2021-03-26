@@ -2,7 +2,7 @@
 type: docs
 title: "cli.go的源码学习"
 linkTitle: "cli.go"
-weight: 1010
+weight: 1015
 date: 2021-02-27
 description: >
   解析命令行标记并返回 DaprRuntime 实例
