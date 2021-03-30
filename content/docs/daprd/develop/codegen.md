@@ -2,7 +2,7 @@
 title: "Daprd Proto代码生成"
 linkTitle: "Proto代码生成"
 weight: 2013
-date: 2021-02-08
+date: 2021-03-30
 description: >
   Daprd proto代码生成的方法和常见问题
 ---
@@ -21,6 +21,13 @@ https://github.com/dapr/dapr/tree/master/dapr
 
 #### linux 安装
 
+如果之前安装过其他，则需要删除已经安装的版本：
+
+```bash
+sudo rm -rf /usr/local/include/google/protobuf/
+sudo rm /usr/local/bin/protoc
+```
+
 下载并解压缩之后，按照 readme.txt 文件的提示，复制bin文件和clude目录到合适的位置：
 
 ```bash
@@ -28,12 +35,39 @@ $ unzip protoc-3.14.0-linux-x86_64.zip
 
 $ sudo cp -r include/google/ /usr/local/include/
 # 需要设置权限可读和可执行，755
-$ sudo chmod -R 777 /usr/local/include/google
+$ sudo chmod -R 755 /usr/local/include/google
 $ sudo cp bin/protoc /usr/local/bin/
 $ sudo chmod +x /usr/local/bin/protoc
 ```
 
 验证安装结果：
+
+```bash
+$ protoc --version
+libprotoc 3.14.0
+```
+
+#### Mac 安装
+
+如果之前安装过其他，则需要删除已经安装的版本：
+
+```bash
+sudo rm -rf /usr/local/include/google/protobuf/
+sudo rm /usr/local/bin/protoc
+```
+
+下载 protoc-3.14.0-osx-x86_64.zip 文件，解压缩之后
+
+```bash
+cd protoc-3.14.0-osx-x86_64
+sudo cp -r include/google/ /usr/local/include/
+# 需要设置权限可读和可执行，755
+$ sudo chmod -R 755 /usr/local/include/google
+$ sudo cp bin/protoc /usr/local/bin/
+$ sudo chmod +x /usr/local/bin/protoc
+```
+
+protoc 安装完成之后，验证一下版本：
 
 ```bash
 $ protoc --version
@@ -86,7 +120,7 @@ make: *** [Makefile:260：gen-proto-common] 错误 1
 
 ```bash
 # 需要设置权限可读和可执行，755
-$ sudo chmod -R 777 /usr/local/include/google
+$ sudo chmod -R 755 /usr/local/include/google
 ```
 
 
