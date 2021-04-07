@@ -56,6 +56,72 @@ rm -f ./dapr/proto/common/v1/*.proto
 rm -f ./dapr/proto/runtime/v1/*.proto
 ```
 
+### 遇到的问题
+
+#### gogoreplace的安装
+
+不知为何我遇到下面的报错：
+
+```
+$ make protos
+go install github.com/gogo/protobuf/gogoreplace
+cannot find package "." in:
+        /home/sky/work/code/skyao/go-sdk/vendor/github.com/gogo/protobuf/gogoreplace
+make: *** [Makefile:48：protos] 错误 1
+```
+
+单独执行这个 go install 命令也是同样错误：
+
+```
+$ go install github.com/gogo/protobuf/gogoreplace
+cannot find package "." in:
+        /home/sky/work/code/skyao/go-sdk/vendor/github.com/gogo/protobuf/gogoreplace
+```
+
+解决的方法是进入上一级目录（不要在go-sdk目录下）进行安装：
+
+```
+$ cd ..
+$ go install github.com/gogo/protobuf/gogoreplace
+go install: version is required when current directory is not in a module
+        Try 'go install github.com/gogo/protobuf/gogoreplace@latest' to install the latest version
+
+$ go install github.com/gogo/protobuf/gogoreplace@latest
+```
+
+然后临时注释掉这一行：
+
+```
+#go install github.com/gogo/protobuf/gogoreplace
+```
+
+方法有点恶心，主要是没有找到问题所在。
+
+#### cgo报错stdlib.h找不到
+
+在ubuntu 20.04新系统上遇到这个错误：
+
+```
+$ make test
+go mod tidy
+go test -count=1 \
+                -race \
+                -coverprofile=coverage.txt \
+                -covermode=atomic \
+                ./...
+# runtime/cgo
+_cgo_export.c:3:10: fatal error: stdlib.h: 没有那个文件或目录
+    3 | #include <stdlib.h>
+      |          ^~~~~~~~~~
+compilation terminated.
+```
+
+这是因为 ubuntu 默认没有C和C++编译环境，执行以下命令安装即可：
+
+```bash
+$ sudo aptitude install build-essential
+```
+
 ## 后记：更新protoc版本
 
 发现 go sdk 使用的protoc 版本是 v3.11.2，而之前我为了满足 dapr/dapr 仓库的要求安装的是 protoc v3.14.0。两个版本生成的代码会有一些细微的差异，也就造成了生成的代码会合git 仓库中的现有代码不同。
