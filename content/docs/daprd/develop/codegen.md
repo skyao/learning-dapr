@@ -60,7 +60,7 @@ sudo rm /usr/local/bin/protoc
 
 ```bash
 cd protoc-3.14.0-osx-x86_64
-sudo cp -r include/google/ /usr/local/include/
+sudo cp -r include/ /usr/local/include/
 # 需要设置权限可读和可执行，755
 $ sudo chmod -R 755 /usr/local/include/google
 $ sudo cp bin/protoc /usr/local/bin/
