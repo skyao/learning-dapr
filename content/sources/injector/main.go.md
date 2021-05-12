@@ -79,6 +79,7 @@ metricsExporter.Options().AttachCmdFlags(flag.StringVar, flag.BoolVar)
 
 ```go
 func main() {
+	logger.DaprVersion = version.Version()
 	log.Infof("starting Dapr Sidecar Injector -- version %s -- commit %s", version.Version(), version.Commit())
 
 	ctx := signals.Context()
@@ -90,7 +91,7 @@ func main() {
 }
 ```
 
-### 获取配置
+### 获取daprClient
 
 ```go
 	kubeClient := utils.GetKubeClient()
@@ -98,7 +99,7 @@ func main() {
 	daprClient, _ := scheme.NewForConfig(conf)
 ```
 
-### 启动 healthz 
+### 启动 healthz server
 
 ```go
 	go func() {
@@ -128,6 +129,8 @@ func main() {
 ```
 
 ### graceful shutdown
+
+简单的sleep 5秒作为 graceful shutdown ：
 
 ```go
 	shutdownDuration := 5 * time.Second

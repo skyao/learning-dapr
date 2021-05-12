@@ -14,7 +14,7 @@ Dapr injector package中的 config.go 文件的源码分析。
 
 ### Config 结构体定义
 
-Injector 相关的配置项
+Injector 相关的配置项定义：
 
 ```go
 // Config represents configuration options for the Dapr Sidecar Injector webhook server
@@ -87,7 +87,7 @@ func main() {
 
 ### injector yaml 备用
 
-以下是完整的 injector yaml，留着备用：
+以下是完整的 injector pod yaml，留着备用：
 
 ```yaml
 Name:         dapr-sidecar-injector-6f656b7dd-sg87p
