@@ -6,12 +6,8 @@ date: 2021-01-29
 menu:
   main:
     weight: 20
+    pre: <i class='fas fa-book'></i>
 ---
-
-{{% pageinfo %}}
-介绍Dapr学习笔记的基本资料和访问方式
-{{% /pageinfo %}}
-
 
 
 
