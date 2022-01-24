@@ -7,9 +7,9 @@ description: >
   kit仓库适合入门
 ---
 
-https://github.com/dapr/kit
+https://github.com/dapr/components-contrib
 
-kit仓库是代码量最小的仓库，也是构建最简单的仓库，适合入门。
+components-contrib 仓库相比 kit 仓库代码量要大很多仓库，但构建还是会比 dapr 仓库要简单。
 
-> 备注：后续其他仓库的构建学习中，不会重复kit仓库中已有的内容，因此，推荐先学习kit仓库。
+> 备注：后续其他仓库的构建学习中，不会重复kit仓库中已有的内容。
 
