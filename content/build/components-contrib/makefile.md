@@ -135,7 +135,7 @@ conf-tests:
 	CGO_ENABLED=$(CGO) go test -v -tags=conftests -count=1 ./tests/conformance
 ```
 
-但这些测试在本地是跑步起来的，因为缺乏对应的可连接的外部组件如 azure.eventhubs 、 azure.cosmosdb。
+但这些测试在本地是跑不起来的，因为缺乏对应的可连接的外部组件如 azure.eventhubs 、 azure.cosmosdb。
 
 ### Target: e2e-tests-zeebe 
 

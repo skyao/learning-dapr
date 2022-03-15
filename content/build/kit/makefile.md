@@ -262,6 +262,31 @@ golangci-lint run --timeout=20m
  golangci-lint 一定要安装 1.31 版本！
 {{% /alert %}}
 
+#### In m1 macbook
+
+在 m1 macbook 上， 由于  1.31 版本发布较早，没有提供对 m1 （也就是darwin-arm64）的支持，因此上面的脚本在运行时并不能自动下载安装：
+
+```bash
+$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
+golangci/golangci-lint info checking GitHub for tag 'v1.31.0'
+golangci/golangci-lint info found version: 1.31.0 for v1.31.0/darwin/arm64
+```
+
+解决方法就是开启 Rosetta 来兼容 intel 芯片：
+
+[If you need to install Rosetta on your Mac - Apple Support](https://support.apple.com/en-us/HT211861)
+
+通常在第一次运行基于inte芯片构建的应用时会提示。
+
+然后手工下载 v1.31.0 的 darwin-amd64 二进制文件：
+
+- https://github.com/golangci/golangci-lint/releases/tag/v1.31.0
+- https://github.com/golangci/golangci-lint/releases/download/v1.31.0/golangci-lint-1.31.0-darwin-amd64.tar.gz
+
+将解压缩得到的 golangci-lint 文件移动到 gopath 下的 bin 目录即可。
+
+
+
 ### Target: go.mod  
 
 ```makefile
