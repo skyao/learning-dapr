@@ -9,9 +9,9 @@ description: >
 ---
 
 
-### go sdk的封装
+## Go sdk实现
 
-go sdk将 dapr grpc service 中定义的 InvokeService 方法封装为  InvokeService 方法和 InvokeServiceWithContent：
+go sdk 将 dapr grpc service 中定义的 InvokeService 方法封装为  InvokeService 方法和 InvokeServiceWithContent：
 
 ```go
 // InvokeService invokes service without raw data ([]byte).
@@ -89,6 +89,22 @@ func (c *GRPCClient) invokeServiceWithRequest(ctx context.Context, req *pb.Invok
 	return
 }
 ```
+
+## Java SDK 实现
+
+在业务代码中使用 service invoke 功能的示例可参考文件 `java-sdk/examples/src/main/java/io/dapr/examples/invoke/http/InvokeClient.java`，代码示意如下：
+
+```java
+DaprClient client = (new DaprClientBuilder()).build();
+byte[] response = client.invokeMethod(SERVICE_APP_ID, "say", message, HttpExtension.POST, null,
+            byte[].class).block();
+```
+
+
+
+
+
+
 
 ### 分析
 

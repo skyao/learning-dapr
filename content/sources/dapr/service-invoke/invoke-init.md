@@ -68,11 +68,122 @@ func _Dapr_InvokeService_Handler(srv interface{}, ctx context.Context, dec func(
 }
 ```
 
-
+最终还是调用到了 DaprServer 接口实现的 InvokeService 方法。
 
 
 
 ## HTTP
 
+### 在 dapr runtime 中启动 HTTP server
 
+dapr runtime 的 HTTP server 用的是 fasthttp。
+
+在 dapr runtime 启动时的初始化过程中，会启动 HTTP server， 代码在 `pkg/runtime/runtime.go` 中：
+
+```go
+func (a *DaprRuntime) initRuntime(opts *runtimeOpts) error {
+  ......
+  // Start HTTP Server
+	err = a.startHTTPServer(a.runtimeConfig.HTTPPort, a.runtimeConfig.PublicPort, a.runtimeConfig.ProfilePort, a.runtimeConfig.AllowedOrigins, pipeline)
+	if err != nil {
+		log.Fatalf("failed to start HTTP server: %s", err)
+	}
+  ......
+}
+
+func (a *DaprRuntime) startHTTPServer(......) error {
+	a.daprHTTPAPI = http.NewAPI(......)
+
+	server := http.NewServer(a.daprHTTPAPI, ......)
+  if err := server.StartNonBlocking(); err != nil {		// StartNonBlocking 启动 fasthttp server
+		return err
+	}
+}
+```
+
+StartNonBlocking() 的实现代码在 `pkg/http/server.go` 中：
+
+```go
+// StartNonBlocking starts a new server in a goroutine.
+func (s *server) StartNonBlocking() error {
+  	......
+  	for _, apiListenAddress := range s.config.APIListenAddresses {
+			l, err := net.Listen("tcp", fmt.Sprintf("%s:%v", apiListenAddress, s.config.Port))
+      listeners = append(listeners, l)
+		}
+  
+  	for _, listener := range listeners {
+		// customServer is created in a loop because each instance
+		// has a handle on the underlying listener.
+		customServer := &fasthttp.Server{
+			Handler:            handler,
+			MaxRequestBodySize: s.config.MaxRequestBodySize * 1024 * 1024,
+			ReadBufferSize:     s.config.ReadBufferSize * 1024,
+			StreamRequestBody:  s.config.StreamRequestBody,
+		}
+		s.servers = append(s.servers, customServer)
+
+		go func(l net.Listener) {
+			if err := customServer.Serve(l); err != nil {
+				log.Fatal(err)
+			}
+		}(listener)
+	}
+}
+```
+
+### 挂载 DirectMessaging 的 HTTP  端点
+
+在 HTTP API 的初始化过程中，会在 fast http server 上挂载 DirectMessaging 的 HTTP  端点，代码在 `pkg/http/api.go` 中：
+
+```go
+func NewAPI(
+  appID string,
+	appChannel channel.AppChannel,
+	directMessaging messaging.DirectMessaging,
+  ......
+  	shutdown func()) API {
+  
+  	api := &api{
+		appChannel:               appChannel,
+		directMessaging:          directMessaging,
+		......
+	}
+  
+  	// 附加 DirectMessaging 的 HTTP 端点
+  	api.endpoints = append(api.endpoints, api.constructDirectMessagingEndpoints()...)
+}
+```
+
+DirectMessaging 的 HTTP 端点的具体信息在 constructDirectMessagingEndpoints() 方法中：
+
+```go
+func (a *api) constructDirectMessagingEndpoints() []Endpoint {
+	return []Endpoint{
+		{
+			Methods:           []string{router.MethodWild},
+			Route:             "invoke/{id}/method/{method:*}",
+			Alias:             "{method:*}",
+			Version:           apiVersionV1,
+			KeepParamUnescape: true,
+			Handler:           a.onDirectMessage,
+		},
+	}
+}
+```
+
+用请求进来之后，就会由 onDirectMessage 方法来处理。
+
+onDirectMessage 的实现代码示意如下：
+
+```go
+func (a *api) onDirectMessage(reqCtx *fasthttp.RequestCtx) {
+	......
+  req := invokev1.NewInvokeMethodRequest(...)
+	resp, err := a.directMessaging.Invoke(reqCtx, targetID, req)
+	......
+}
+```
+
+最后调用到了 directMessaging.Invoke() 方法。
 
