@@ -1,8 +1,7 @@
 ---
-type: docs
 title: "e2e测试的搭建"
 linkTitle: "搭建"
-weight: 4100
+weight: 100
 date: 2021-05-09
 description: >
   搭建Dapr的e2e测试
@@ -25,7 +24,7 @@ https://github.com/dapr/dapr/blob/master/docs/development/setup-dapr-development
 具体有：
 
 - 准备docker：包括安装 docker ，创建 docker hub 账号
-- 准备golang：必须是go 1.16
+- 准备golang：必须是go 1.17
 - 准备k8s
 
 ### 准备helm v3
@@ -35,10 +34,10 @@ https://github.com/dapr/dapr/blob/master/docs/development/setup-dapr-development
 在mac下最简单的方式就是用 brew 安装：
 
 ```bash
-brew install helm
+$ brew install helm
 
-helm version
-version.BuildInfo{Version:"v3.5.4", GitCommit:"1b5edb69df3d3a08df77c9902dc17af864ff05d1", GitTreeState:"dirty", GoVersion:"go1.16.3"}
+$ helm version
+version.BuildInfo{Version:"v3.8.1", GitCommit:"5cb9af4b1b271d11d7a97a71df3ac337dd94ad37", GitTreeState:"clean", GoVersion:"go1.17.8"}
 ```
 
 ### 准备dapr
@@ -74,11 +73,37 @@ e2e 需要用到 kubernetes。
 
 ### 设置e2e相关的环境变量
 
+#### m1本地测试
+
+在 m1 macbook 上，如果为了构建后给本地的 arm64 docker 和 arm64 k8s 运行：
+
 ```bash
-export DAPR_REGISTRY=docker.io/your_dockerhub_id
+export DAPR_REGISTRY=docker.io/skyao
 export DAPR_TAG=dev
-export DAPR_NAMESPACE=dapr-tests
+export DAPR_TEST_NAMESPACE=dapr-tests
+export TARGET_OS=linux
+export TARGET_ARCH=arm64  # 默认是amd64，m1上本地运行需要修改为arm64
+# export GOOS=linux
+# export GOARCH=amd64
 ```
+
+#### m1 交叉测试
+
+
+
+#### amd64
+
+在 amd64 机器上：
+
+```bash
+export DAPR_REGISTRY=docker.io/skyao
+export DAPR_TAG=dev
+export DAPR_TEST_NAMESPACE=dapr-tests
+export TARGET_OS=linux
+export TARGET_ARCH=amd64  # 默认是amd64，m1上需要修改
+```
+
+
 
 ### 构建dapr镜像
 
@@ -87,6 +112,20 @@ make build-linux
 make docker-build
 make docker-push
 ```
+
+
+
+#### m1 本地测试
+
+
+
+#### m1 交叉测试
+
+
+
+#### amd64
+
+
 
 
 
@@ -102,8 +141,8 @@ https://github.com/dapr/dapr/blob/master/tests/docs/running-e2e-test.md#option-2
 准备测试用的 namespace，在 `dapr/dapr` 仓库下执行：
 
 ```bash
-make delete-test-namespace
-make create-test-namespace
+$ make delete-test-namespace
+$ make create-test-namespace
 
 kubectl create namespace dapr-tests
 namespace/dapr-tests created
@@ -111,12 +150,25 @@ kubectl create namespace dapr-tests-2
 namespace/dapr-tests-2 created
 ```
 
-实际上会构建两个 namespace，这个 dapr-tests-2 应该是后面加的，暂时不还不知道用在什么情况下。
+实际上会构建两个 namespace。
 
 ### 初始化heml
 
 ```bash
-make setup-helm-init
+$ make setup-helm-init
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+"bitnami" has been added to your repositories
+helm repo add stable https://charts.helm.sh/stable
+"stable" has been added to your repositories
+helm repo add incubator https://charts.helm.sh/incubator
+"incubator" has been added to your repositories
+helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "incubator" chart repository
+...Successfully got an update from the "bitnami" chart repository
+...Successfully got an update from the "stable" chart repository
+Update Complete. ⎈Happy Helming!⎈
 ```
 
 ### 准备测试会用到的redis和kafka
@@ -126,19 +178,25 @@ make setup-test-env-redis
 make setup-test-env-kafka
 ```
 
+#### m1 本地
 
-Containers:
-  dapr-sidecar-injector:
-    Container ID:  docker://596245f5fe624a24ee169a6cf92d908a8ca8800e93b89290078b9821faa0e250
-    Image:         docker.io/skyao/dapr:dev-linux-amd64
-    Image ID:      docker-pullable://skyao/dapr@sha256:c3cb8d57b611207efda277dfced83ec8417b864cc3c4dc9f2398d6cefe877dbe
-    
-    
-Containers:
-  dapr-sidecar-injector:
-    Container ID:  docker://9ec86d2637893c140f6775039d40553e0763a3978b46d2ed9e61ddc5c1ee5308
-    Image:         docker.io/skyao/dapr:dev-linux-amd64
-    Image ID:      docker-pullable://skyao/dapr@sha256:63aceee9d73de93b398f1e87c0dd2aaf862dd7b3ea0a73aa96e6de8b11819c07
-    Ports:         4000/TCP, 9090/TCP
-    Host Ports:    0/TCP, 0/TCP
+部署之后 redis pod 启动不起来，报错 '1 node(s) didn't match Pod's node affinity/selector.'，经检查是因为 redis pods 的设置中要求部署在 linux + amd64 下，m1 本地启动的 k8s 节点是 arm64，所以没有节点可以启动：
 
+```yaml
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+          - key: kubernetes.io/arch
+            operator: In
+            values:
+            - amd64
+```
+
+暂时作罢，这需要改动部署文件了，还不知道 redis 有没有支持 arm64 的镜像。
