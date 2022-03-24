@@ -89,21 +89,25 @@ export TARGET_ARCH=arm64  # 默认是amd64，m1上本地运行需要修改为arm
 
 #### m1 交叉测试
 
-
-
-#### amd64
-
-在 amd64 机器上：
+在 m1 macbook 上，如果为了构建后给远程的 amd64 docker 和 amd64 k8s 运行：
 
 ```bash
 export DAPR_REGISTRY=docker.io/skyao
 export DAPR_TAG=dev
 export DAPR_TEST_NAMESPACE=dapr-tests
 export TARGET_OS=linux
-export TARGET_ARCH=amd64  # 默认是amd64，m1上需要修改
+export TARGET_ARCH=amd64
+export GOOS=linux
+export GOARCH=amd64
 ```
 
+#### amd64
 
+在 amd64 机器上：
+
+```bash
+...
+```
 
 ### 构建dapr镜像
 
@@ -119,7 +123,60 @@ make docker-push
 
 
 
+
+
 #### m1 交叉测试
+
+在 m1 macbook 上构建 linux + amd 64 的二进制文件：
+
+```bash
+$ make build-linux 
+
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=551722f533afa5dfee97482fe3e63d8ff6233d50 -X github.com/dapr/dapr/pkg/version.gitversion=v1.5.1-rc.3-411-g551722f-dirty -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/daprd ./cmd/daprd/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=551722f533afa5dfee97482fe3e63d8ff6233d50 -X github.com/dapr/dapr/pkg/version.gitversion=v1.5.1-rc.3-411-g551722f-dirty -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/placement ./cmd/placement/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=551722f533afa5dfee97482fe3e63d8ff6233d50 -X github.com/dapr/dapr/pkg/version.gitversion=v1.5.1-rc.3-411-g551722f-dirty -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/operator ./cmd/operator/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=551722f533afa5dfee97482fe3e63d8ff6233d50 -X github.com/dapr/dapr/pkg/version.gitversion=v1.5.1-rc.3-411-g551722f-dirty -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/injector ./cmd/injector/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=551722f533afa5dfee97482fe3e63d8ff6233d50 -X github.com/dapr/dapr/pkg/version.gitversion=v1.5.1-rc.3-411-g551722f-dirty -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/sentry ./cmd/sentry/;
+```
+
+打包 docker 镜像：
+
+```bash
+$ make docker-build     
+
+Building docker.io/skyao/dapr:dev docker image ...
+docker build --build-arg PKG_FILES=* -f ./docker/Dockerfile ./dist/linux_amd64/release -t docker.io/skyao/dapr:dev-linux-amd64
+[+] Building 16.1s (12/12) FINISHED    
+......
+ => => naming to docker.io/skyao/dapr:dev-linux-amd64 
+ => => naming to docker.io/skyao/daprd:dev-linux-amd64 
+ => => naming to docker.io/skyao/placement:dev-linux-amd64 
+ => => naming to docker.io/skyao/sentry:dev-linux-amd64 
+```
+
+推送 docker 镜像
+
+```bash
+$ make docker-push
+
+Building docker.io/skyao/dapr:dev docker image ...
+docker build --build-arg PKG_FILES=* -f ./docker/Dockerfile ./dist/linux_amd64/release -t docker.io/skyao/dapr:dev-linux-amd64
+.....
+
+docker push docker.io/skyao/dapr:dev-linux-amd64
+The push refers to repository [docker.io/skyao/dapr]
+
+docker push docker.io/skyao/daprd:dev-linux-amd64
+The push refers to repository [docker.io/skyao/daprd]
+
+docker push docker.io/skyao/placement:dev-linux-amd64
+The push refers to repository [docker.io/skyao/placement]
+
+docker push docker.io/skyao/sentry:dev-linux-amd64
+The push refers to repository [docker.io/skyao/sentry]
+
+
+```
 
 
 
@@ -148,6 +205,10 @@ kubectl create namespace dapr-tests
 namespace/dapr-tests created
 kubectl create namespace dapr-tests-2
 namespace/dapr-tests-2 created
+
+# 如果测试的 namespace 不是 dapr-system，则需要手工建立 dapr-system
+# 文档里面忽略了这个问题
+$ kubectl create namespace dapr-system
 ```
 
 实际上会构建两个 namespace。
@@ -178,7 +239,189 @@ make setup-test-env-redis
 make setup-test-env-kafka
 ```
 
-#### m1 本地
+### 部署 dapr 控制面
+
+```bash
+$ make docker-deploy-k8s
+
+Deploying docker.io/skyao/dapr:dev to the current K8S context...
+helm install \
+                dapr --namespace=dapr-system --wait --timeout 5m0s \
+                --set global.ha.enabled=false --set-string global.tag=dev-linux-amd64 \
+                --set-string global.registry=docker.io/skyao --set global.logAsJson=true \
+                --set global.daprControlPlaneOs=linux --set global.daprControlPlaneArch=amd64 \
+                --set dapr_placement.logLevel=debug --set dapr_sidecar_injector.sidecarImagePullPolicy=Always \
+                --set global.imagePullPolicy=Always --set global.imagePullSecrets= \
+                --set global.mtls.enabled=true \
+                --set dapr_placement.cluster.forceInMemoryLog=true ./charts/dapr
+NAME: dapr
+LAST DEPLOYED: Thu Mar 24 18:43:41 2022
+NAMESPACE: dapr-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing Dapr: High-performance, lightweight serverless runtime for cloud and edge
+
+Your release is named dapr.
+
+To get started with Dapr, we recommend using our quickstarts:
+https://github.com/dapr/quickstarts
+
+For more information on running Dapr, visit:
+https://dapr.io
+```
+
+部署之后，检查一下pod 的情况
+
+```bash
+$ k get pods -A                 
+NAMESPACE     NAME                                     READY   STATUS    RESTARTS   AGE
+dapr-system   dapr-dashboard-7c99fc9c45-cgnb6          1/1     Running   0          101s
+dapr-system   dapr-operator-556dfb5987-xfnwt           1/1     Running   0          101s
+dapr-system   dapr-placement-server-0                  1/1     Running   0          101s
+dapr-system   dapr-sentry-54cb9989d5-hq5m4             1/1     Running   0          101s
+dapr-system   dapr-sidecar-injector-58d99b46c7-vxn5r   1/1     Running   0          101s
+dapr-tests    dapr-kafka-0                             1/1     Running   0          18m
+dapr-tests    dapr-kafka-zookeeper-0                   1/1     Running   0          18m
+dapr-tests    dapr-redis-master-0                      1/1     Running   0          18m
+......
+```
+
+关闭 mtls:
+
+```bash
+make setup-disable-mtls
+kubectl apply -f ./tests/config/dapr_mtls_off_config.yaml --namespace dapr-tests
+configuration.dapr.io/daprsystem created
+```
+
+###  部署测试用的组件
+
+```bash
+$ make setup-test-components
+
+kubectl apply -f ./tests/config/dapr_observability_test_config.yaml --namespace dapr-tests
+configuration.dapr.io/disable-telemetry created
+configuration.dapr.io/obs-defaultmetric created
+kubectl apply -f ./tests/config/kubernetes_secret.yaml --namespace dapr-tests
+secret/daprsecret created
+secret/daprsecret2 created
+secret/emptysecret created
+kubectl apply -f ./tests/config/kubernetes_secret_config.yaml --namespace dapr-tests
+configuration.dapr.io/secretappconfig created
+kubectl apply -f ./tests/config/kubernetes_redis_secret.yaml --namespace dapr-tests
+secret/redissecret created
+kubectl apply -f ./tests/config/dapr_redis_state.yaml --namespace dapr-tests
+component.dapr.io/statestore created
+kubectl apply -f ./tests/config/dapr_mongodb_state.yaml --namespace dapr-tests
+component.dapr.io/querystatestore created
+kubectl apply -f ./tests/config/dapr_tests_cluster_role_binding.yaml --namespace dapr-tests
+rolebinding.rbac.authorization.k8s.io/dapr-secret-reader created
+role.rbac.authorization.k8s.io/secret-reader created
+kubectl apply -f ./tests/config/dapr_redis_pubsub.yaml --namespace dapr-tests
+component.dapr.io/messagebus created
+kubectl apply -f ./tests/config/dapr_kafka_bindings.yaml --namespace dapr-tests
+component.dapr.io/test-topic created
+kubectl apply -f ./tests/config/dapr_kafka_bindings_custom_route.yaml --namespace dapr-tests
+component.dapr.io/test-topic-custom-route created
+kubectl apply -f ./tests/config/dapr_kafka_bindings_grpc.yaml --namespace dapr-tests
+component.dapr.io/test-topic-grpc created
+kubectl apply -f ./tests/config/app_topic_subscription_pubsub.yaml --namespace dapr-tests
+subscription.dapr.io/c-topic-subscription created
+kubectl apply -f ./tests/config/app_topic_subscription_pubsub_grpc.yaml --namespace dapr-tests
+subscription.dapr.io/c-topic-subscription-grpc created
+kubectl apply -f ./tests/config/kubernetes_allowlists_config.yaml --namespace dapr-tests
+configuration.dapr.io/allowlistsappconfig created
+kubectl apply -f ./tests/config/kubernetes_allowlists_grpc_config.yaml --namespace dapr-tests
+configuration.dapr.io/allowlistsgrpcappconfig created
+kubectl apply -f ./tests/config/dapr_redis_state_query.yaml --namespace dapr-tests
+component.dapr.io/querystatestore2 created
+kubectl apply -f ./tests/config/dapr_redis_state_badhost.yaml --namespace dapr-tests
+component.dapr.io/badhost-store created
+kubectl apply -f ./tests/config/dapr_redis_state_badpass.yaml --namespace dapr-tests
+component.dapr.io/badpass-store created
+kubectl apply -f ./tests/config/uppercase.yaml --namespace dapr-tests
+component.dapr.io/uppercase created
+kubectl apply -f ./tests/config/pipeline.yaml --namespace dapr-tests
+configuration.dapr.io/pipeline created
+kubectl apply -f ./tests/config/app_reentrant_actor.yaml --namespace dapr-tests
+configuration.dapr.io/reentrantconfig created
+kubectl apply -f ./tests/config/app_actor_type_metadata.yaml --namespace dapr-tests
+configuration.dapr.io/actortypemetadata created
+kubectl apply -f ./tests/config/app_topic_subscription_routing.yaml --namespace dapr-tests
+subscription.dapr.io/pubsub-routing-crd-http-subscription created
+kubectl apply -f ./tests/config/app_topic_subscription_routing_grpc.yaml --namespace dapr-tests
+subscription.dapr.io/pubsub-routing-crd-grpc-subscription created
+kubectl apply -f ./tests/config/app_pubsub_routing.yaml --namespace dapr-tests
+configuration.dapr.io/pubsubroutingconfig created
+# Show the installed components
+kubectl get components --namespace dapr-tests
+NAME                      AGE
+badhost-store             23s
+badpass-store             20s
+messagebus                49s
+querystatestore           56s
+querystatestore2          27s
+statestore                58s
+test-topic                45s
+test-topic-custom-route   42s
+test-topic-grpc           39s
+uppercase                 18s
+# Show the installed configurations
+kubectl get configurations --namespace dapr-tests
+NAME                      AGE
+actortypemetadata         11s
+allowlistsappconfig       33s
+allowlistsgrpcappconfig   31s
+daprsystem                93s
+disable-telemetry         73s
+obs-defaultmetric         72s
+pipeline                  16s
+pubsubroutingconfig       3s
+reentrantconfig           13s
+secretappconfig           65s
+```
+
+
+
+## 部署测试用的应用
+
+
+
+```bash
+make build-e2e-app-all
+
+make push-e2e-app-all
+```
+
+## 运行e2e测试
+
+```bash
+$ make test-e2e-all
+
+# Note2: use env variable DAPR_E2E_TEST to pick one e2e test to run.
+
+```
+
+
+
+根据提示，如果只想单独执行某个测试案例，可以设置环境变量 DAPR_E2E_TEST：
+
+```bash
+$ export DAPR_E2E_TEST=service_invocation
+
+$ make test-e2e-all
+
+```
+
+测试非常不稳定，待查。
+
+
+
+## 特殊情况
+
+#### m1 本地启动k8s
 
 部署之后 redis pod 启动不起来，报错 '1 node(s) didn't match Pod's node affinity/selector.'，经检查是因为 redis pods 的设置中要求部署在 linux + amd64 下，m1 本地启动的 k8s 节点是 arm64，所以没有节点可以启动：
 
@@ -199,4 +442,24 @@ spec:
             - amd64
 ```
 
-暂时作罢，这需要改动部署文件了，还不知道 redis 有没有支持 arm64 的镜像。
+暂时作罢，这需要改动部署文件了。redis 有 arm64 的镜像：
+
+https://hub.docker.com/r/arm64v8/redis/
+
+试了一下在 m1 上执行 `docker run --name some-redis -d arm64v8/redis` 命令是可以正常在docker中启动 redis 的。
+
+原则上修改pod一下内容应该就可以跑起来：
+
+ ```yaml
+           - key: kubernetes.io/arch
+             operator: In
+             values:
+             - amd64  # 修改为 arm64
+ 
+ image: docker.io/redislabs/rejson:latest  # 修改为 image: docker.io/arm64v8/redis:latest
+ ```
+
+查了一下 helm 对 redis arm64 还没有提供支持，而且这个需求一年内被提出了n次，但还是唧唧歪歪的不支持。
+
+所以，结论是：没法在 m1 macbook 上启动 k8s 并完成开发测试。
+
