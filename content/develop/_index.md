@@ -9,7 +9,7 @@ cascade:
 menu:
   main:
     weight: 60
-    pre: <i class='fas fa-paper-plane'></i>
+    pre: <i class='fa fa-cogs'></i>
 ---
 
 {{% pageinfo %}}
