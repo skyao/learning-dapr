@@ -83,7 +83,19 @@ $ make build-perf-app-all
 $ make push-perf-app-all
 ```
 
-在 m1 macbook 上构建，运行时报错：
+
+
+## 运行性能测试
+
+```bash
+make test-perf-all
+```
+
+
+
+## 特殊情况
+
+在 m1 macbook 上构建，运行 `make test-perf-all` 时报错：
 
 ```bash
 $ k get pods -A

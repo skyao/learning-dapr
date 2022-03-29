@@ -106,7 +106,13 @@ export GOARCH=amd64
 在 amd64 机器上：
 
 ```bash
-...
+export DAPR_REGISTRY=docker.io/skyao
+export DAPR_TAG=dev
+export DAPR_TEST_NAMESPACE=dapr-tests
+export TARGET_OS=linux
+export TARGET_ARCH=amd64
+export GOOS=linux
+export GOARCH=amd64
 ```
 
 ### 构建dapr镜像
@@ -119,11 +125,11 @@ make docker-push
 
 
 
-#### m1 本地测试
+#### ~~m1 本地测试~~
 
+由于缺乏类似 redis 之类的 arm64 镜像, 这个方案跑不通.
 
-
-
+暂时放弃.
 
 #### m1 交叉测试
 
@@ -182,9 +188,73 @@ The push refers to repository [docker.io/skyao/sentry]
 
 #### amd64
 
+在 x86 机器上构建 linux + amd 64 的二进制文件：
+
+```bash
+$ make build-linux 
+
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=79ffea446dfd14ac25429c8dc9ad792983b46ce2 -X github.com/dapr/dapr/pkg/version.gitversion=v1.0.0-rc.4-1305-g79ffea4 -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/daprd ./cmd/daprd/;
+go: downloading github.com/dapr/components-contrib v1.6.0-rc.2.0.20220322152414-4d44c2f04f43
+go: downloading github.com/nats-io/nats.go v1.13.1-0.20220308171302-2f2f6968e98d
+go: downloading github.com/alibabacloud-go/darabonba-openapi v0.1.16
+go: downloading github.com/apache/pulsar-client-go v0.8.1
+go: downloading github.com/prometheus/client_golang v1.11.1
+go: downloading github.com/klauspost/compress v1.14.4
+go: downloading github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=79ffea446dfd14ac25429c8dc9ad792983b46ce2 -X github.com/dapr/dapr/pkg/version.gitversion=v1.0.0-rc.4-1305-g79ffea4 -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/placement ./cmd/placement/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=79ffea446dfd14ac25429c8dc9ad792983b46ce2 -X github.com/dapr/dapr/pkg/version.gitversion=v1.0.0-rc.4-1305-g79ffea4 -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/operator ./cmd/operator/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=79ffea446dfd14ac25429c8dc9ad792983b46ce2 -X github.com/dapr/dapr/pkg/version.gitversion=v1.0.0-rc.4-1305-g79ffea4 -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/injector ./cmd/injector/;
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -ldflags="-X github.com/dapr/dapr/pkg/version.gitcommit=79ffea446dfd14ac25429c8dc9ad792983b46ce2 -X github.com/dapr/dapr/pkg/version.gitversion=v1.0.0-rc.4-1305-g79ffea4 -X github.com/dapr/dapr/pkg/version.version=edge -X github.com/dapr/kit/logger.DaprVersion=edge -s -w" -o ./dist/linux_amd64/release/sentry ./cmd/sentry/;
+```
+
+打包 docker 镜像：
+
+```bash
+$ make docker-build     
+
+Building docker.io/skyao/dapr:dev docker image ...
+docker build --build-arg PKG_FILES=* -f ./docker/Dockerfile ./dist/linux_amd64/release -t docker.io/skyao/dapr:dev-linux-amd64
+Sending build context to Docker daemon  236.2MB
+
+......
+Successfully tagged skyao/dapr:dev-linux-amd64
+Successfully tagged skyao/daprd:dev-linux-amd64
+Successfully tagged skyao/placement:dev-linux-amd64
+Successfully tagged skyao/sentry:dev-linux-amd64
+```
+
+推送 docker 镜像
+
+```bash
+$ make docker-push
+
+Building docker.io/skyao/dapr:dev docker image ...
+docker build --build-arg PKG_FILES=* -f ./docker/Dockerfile ./dist/linux_amd64/release -t docker.io/skyao/dapr:dev-linux-amd64
+.....
+
+docker push docker.io/skyao/dapr:dev-linux-amd64
+The push refers to repository [docker.io/skyao/dapr]
+
+docker push docker.io/skyao/daprd:dev-linux-amd64
+The push refers to repository [docker.io/skyao/daprd]
+
+docker push docker.io/skyao/placement:dev-linux-amd64
+The push refers to repository [docker.io/skyao/placement]
+
+docker push docker.io/skyao/sentry:dev-linux-amd64
+The push refers to repository [docker.io/skyao/sentry]
 
 
+```
 
+如果执行时遇到报错:
+
+```bash
+denied: requested access to the resource is denied
+make: *** [docker/docker.mk:110: docker-push] Error 1
+```
+
+可以通过 `docker login` 命令先登录再 push。
 
 
 ## 部署e2e测试的应用
