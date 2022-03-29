@@ -81,6 +81,7 @@ $ make build-perf-app-all
 $ make push-perf-app-all
 ```
 
+
 备注：发现 `make build-perf-app-all` 时在m1 macbook上构建出来的测试应用的二进制文件有问题，在k8s上会出错。
 
 ## 执行性能测试
@@ -89,8 +90,14 @@ $ make push-perf-app-all
 
 ```bash
 brew install jq
-```
+=======
 
+
+## 运行性能测试
+
+```bash
+make test-perf-all
+```
 
 
 特别注意日志文件中的这些内容：
@@ -135,7 +142,10 @@ func (c *KubeTestPlatform) imageRegistry() string {
 
 
 在 m1 macbook 上构建，运行时报错：
+=======
+## 特殊情况
 
+在 m1 macbook 上构建，运行 `make test-perf-all` 时报错：
 ```bash
 $ k get pods -A
 NAMESPACE     NAME                                     READY   STATUS             RESTARTS   AGE
@@ -146,8 +156,6 @@ standard_init_linux.go:228: exec user process caused: exec format error
 ```
 
 没办法，换普通pc机器再试。dapr 对 m1 的支持是真的不好。
-
-
 
 ```bash
 $ make build-perf-app-service_invocation_http
@@ -166,11 +174,11 @@ docker build -f ./tests/apps/perf/service_invocation_http/Dockerfile ./tests/app
 
 应该是 `go build -o app .` 这里的问题，没有加上 `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 `
 
+修改代码，增加GOOS=linux GOARCH=amd64， 验证通过。提交的PR为：
 
+[[m1 support\]Improve go build in dockerfile to support build docker images on m1 macbook · Issue #4426 · dapr/dapr (github.com)](https://github.com/dapr/dapr/issues/4426)
 
 ### 彻底清理
-
-
 
 还要清理以下在 default namespace 中保存的内容：
 
