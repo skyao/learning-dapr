@@ -1,7 +1,7 @@
 ---
 title: "components-contrib仓库的源码学习"
-linkTitle: "components-contrib"
-weight: 300
+linkTitle: "components-contrib仓库"
+weight: 1200
 date: 2021-03-03
 description: >
   Dapr源码学习之components-contrib仓库

@@ -1,11 +1,38 @@
 ---
-title: "服务调用的runtime转发请求"
-linkTitle: "Runtime 相互通讯"
+title: "Dapr Runtime转发outbound请求"
+linkTitle: "Runtime转发outbound请求"
 weight: 50
 date: 2021-01-31
 description: >
-  Dapr服务调用的客户端sdk封装
+  客户端的Dapr Runtime将outbound请求转发给远程服务器端的Dapr Runtime
 ---
+
+Dapr runtime 之间相互通讯采用的是 gRPC 协议，定义有 Dapr gRPC internal API。比较特殊的是，采用随机空闲端口而不是默认端口。但也可以通过命令行参数 `dapr-internal-grpc-port` 指定。
+
+```plantuml
+title Daprd-Daprd Communication
+hide footbox
+skinparam style strictuml
+
+participant daprd_client [
+    =daprd
+    ----
+    client
+]
+participant daprd_server [
+    =daprd
+    ----
+    server
+]
+
+ -[#blue]> daprd_client : HTTP (localhost)
+ -[#blue]> daprd_client : gRPC (localhost)
+|||
+daprd_client -[#red]> daprd_server : gRPC (remote call)
+note right: internal API @ ramdon free port\n/dapr.proto.internals.v1.ServiceInvocation/CallLocal
+```
+
+
 
 `pkg/messaging/direct_messaging.go` 中的 DirectMessaging 负责实现转发请求给远程 dapr runtime。
 
@@ -70,3 +97,23 @@ func (c *serviceInvocationClient) CallLocal(ctx context.Context, in *InternalInv
 ```
 
 可以看到这个 gRPC 请求调用的是 dapr.proto.internals.v1.ServiceInvocation 服务的 CallLocal 方法。
+
+```plantuml
+hide footbox
+skinparam style strictuml
+
+participant daprd_client [
+    =daprd
+    ----
+    client
+]
+participant daprd_server [
+    =daprd
+    ----
+    server
+]
+
+daprd_client -[#red]> daprd_server : gRPC (remote call)
+note right: internal API @ ramdon free port\n/dapr.proto.internals.v1.ServiceInvocation/CallLocal
+```
+
