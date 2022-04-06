@@ -11,7 +11,45 @@ description: >
 
 ## 准备工作
 
-基本类似 e2e 测试，
+基本类似 e2e 测试。
+
+### 设置环境变量
+
+首先要设置相关的环境变量。
+
+#### m1 交叉测试
+
+在 m1 macbook 上，构建给远程的 amd64 docker 和 amd64 k8s 运行：
+
+```bash
+export DAPR_REGISTRY=docker.io/skyao
+export DAPR_TAG=dev
+export DAPR_TEST_NAMESPACE=dapr-tests
+export TARGET_OS=linux
+export TARGET_ARCH=amd64
+export GOOS=linux
+export GOARCH=amd64
+export DAPR_TEST_REGISTRY=docker.io/skyao
+export DAPR_TEST_TAG=dev-linux-amd64
+```
+
+#### amd64
+
+在 amd64 机器上：
+
+```bash
+export DAPR_REGISTRY=docker.io/skyao
+export DAPR_TAG=dev
+export DAPR_TEST_NAMESPACE=dapr-tests
+export TARGET_OS=linux
+export TARGET_ARCH=amd64
+export GOOS=linux
+export GOARCH=amd64
+export DAPR_TEST_REGISTRY=docker.io/skyao
+export DAPR_TEST_TAG=dev-linux-amd64
+```
+
+### 构建并部署dapr到k8s中
 
 ```bash
 $ make create-test-namespace
@@ -51,6 +89,10 @@ helm install dapr-mongodb bitnami/mongodb -f ./tests/config/mongodb_override.yam
 
 
 
+### dapr相关的设置
+
+关闭遥测：
+
 ```bash
 $ make setup-app-configurations
 
@@ -59,7 +101,7 @@ configuration.dapr.io/disable-telemetry created
 configuration.dapr.io/obs-defaultmetric created
 ```
 
-
+关闭mtls：
 
 ```bash
 $ make setup-disable-mtls
@@ -67,7 +109,7 @@ kubectl apply -f ./tests/config/dapr_mtls_off_config.yaml --namespace dapr-tests
 configuration.dapr.io/daprsystem created
 ```
 
-
+准备测试用的components：
 
 ```bash
 $ make setup-test-components
@@ -81,8 +123,17 @@ $ make build-perf-app-all
 $ make push-perf-app-all
 ```
 
+备注：发现 `make build-perf-app-all` 时在m1 macbook上构建出来的测试应用的二进制文件有问题，在k8s上会出错。需要增加 GOOS 和 GOARCH 参数。
 
-备注：发现 `make build-perf-app-all` 时在m1 macbook上构建出来的测试应用的二进制文件有问题，在k8s上会出错。
+> 见issue：https://github.com/dapr/dapr/issues/4426
+
+如果要节约时间，只单独构建和推送某一个性能测试的应用，可以直接调用 make target:
+
+```bash
+$ make build-perf-app-service_invocation_http
+
+$ make push-perf-app-service_invocation_http
+```
 
 ## 执行性能测试
 
@@ -112,38 +163,15 @@ make test-perf-all
 
 
 
-## 本地debug性能测试
+## 本地debug
 
-
-
-```bash
-export DAPR_TEST_REGISTRY=docker.io/skyao
-export DAPR_TEST_TAG=dev-linux-amd64
-```
-
-在文件 `tests/runner/kube_testplatform.go` 中获取 registry 的代码实现如下，取的是 DAPR_TEST_REGISTRY， 而不是 DAPR_REGISTRY：
-
-```go
-func (c *KubeTestPlatform) imageRegistry() string {
-	reg := os.Getenv("DAPR_TEST_REGISTRY")
-	if reg == "" {
-		return defaultImageRegistry
-	}
-	return reg
-}
-```
-
-
+perf test 的测试案例都是用 go test 编写，原则上只要前面步骤准备好，是可以在本地 IDE 中以 debug 方式启动 perf test 的测试案例，然后进行 debug 的。
 
 
 
 ## 特殊情况
 
-
-
-在 m1 macbook 上构建，运行时报错：
-=======
-## 特殊情况
+### 二进制文件不可用
 
 在 m1 macbook 上构建，运行 `make test-perf-all` 时报错：
 ```bash
@@ -178,7 +206,7 @@ docker build -f ./tests/apps/perf/service_invocation_http/Dockerfile ./tests/app
 
 [[m1 support\]Improve go build in dockerfile to support build docker images on m1 macbook · Issue #4426 · dapr/dapr (github.com)](https://github.com/dapr/dapr/issues/4426)
 
-### 彻底清理
+### 彻底清理namespace
 
 还要清理以下在 default namespace 中保存的内容：
 
@@ -193,7 +221,7 @@ k delete rolebinding dapr-secret-reader -n default
 k delete mutatingwebhookconfiguration dapr-sidecar-injector -n default
 ```
 
-否则，重新安装dapr 控制面时，如果 dapr 控制面的 namespace 发生变化，就会出报错：
+否则，重新安装 dapr 控制面时，如果 dapr 控制面的 namespace 发生变化，就会出报错：
 
 ```bash
 make docker-deploy-k8s
