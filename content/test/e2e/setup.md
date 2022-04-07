@@ -80,7 +80,10 @@ e2e 需要用到 kubernetes。
 ```bash
 export DAPR_REGISTRY=docker.io/skyao
 export DAPR_TAG=dev
+export DAPR_NAMESPACE=dapr-tests
 export DAPR_TEST_NAMESPACE=dapr-tests
+export DAPR_TEST_REGISTRY=docker.io/skyao
+export DAPR_TEST_TAG=dev-linux-amd64
 export TARGET_OS=linux
 export TARGET_ARCH=arm64  # 默认是amd64，m1上本地运行需要修改为arm64
 # export GOOS=linux
@@ -94,9 +97,10 @@ export TARGET_ARCH=arm64  # 默认是amd64，m1上本地运行需要修改为arm
 ```bash
 export DAPR_REGISTRY=docker.io/skyao
 export DAPR_TAG=dev
+export DAPR_NAMESPACE=dapr-tests
 export DAPR_TEST_NAMESPACE=dapr-tests
-export TARGET_OS=linux
-export TARGET_ARCH=amd64
+export DAPR_TEST_REGISTRY=docker.io/skyao
+export DAPR_TEST_TAG=dev-linux-amd64
 export GOOS=linux
 export GOARCH=amd64
 ```
@@ -108,9 +112,10 @@ export GOARCH=amd64
 ```bash
 export DAPR_REGISTRY=docker.io/skyao
 export DAPR_TAG=dev
+export DAPR_NAMESPACE=dapr-tests
 export DAPR_TEST_NAMESPACE=dapr-tests
-export TARGET_OS=linux
-export TARGET_ARCH=amd64
+export DAPR_TEST_REGISTRY=docker.io/skyao
+export DAPR_TEST_TAG=dev-linux-amd64
 export GOOS=linux
 export GOARCH=amd64
 ```
