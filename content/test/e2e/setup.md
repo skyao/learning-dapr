@@ -40,6 +40,18 @@ $ helm version
 version.BuildInfo{Version:"v3.8.1", GitCommit:"5cb9af4b1b271d11d7a97a71df3ac337dd94ad37", GitTreeState:"clean", GoVersion:"go1.17.8"}
 ```
 
+ubuntu下通过 apt 命令安装：
+
+```bash
+curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+sudo apt-get install apt-transport-https --yes
+echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+```
+
+
+
 ### 准备dapr
 
 e2e 需要用到 kubernetes。
@@ -85,9 +97,20 @@ export DAPR_TEST_NAMESPACE=dapr-tests
 export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-amd64
 export TARGET_OS=linux
-export TARGET_ARCH=arm64  # 默认是amd64，m1上本地运行需要修改为arm64
+export TARGET_ARCH=arm64  
 # export GOOS=linux
 # export GOARCH=amd64
+
+export DAPR_REGISTRY=docker.io/skyao
+export DAPR_TAG=dev
+export DAPR_NAMESPACE=dapr-tests
+export DAPR_TEST_NAMESPACE=dapr-tests
+export DAPR_TEST_REGISTRY=docker.io/skyao
+export DAPR_TEST_TAG=dev-linux-arm64
+export GOOS=linux
+export GOARCH=arm64						# 默认是amd64，m1上本地运行需要修改为arm64
+export TARGET_OS=linux
+export TARGET_ARCH=arm64				# 默认是amd64，m1上本地运行需要修改为arm64
 ```
 
 #### m1 交叉测试
@@ -103,6 +126,8 @@ export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-amd64
 export GOOS=linux
 export GOARCH=amd64
+export TARGET_OS=linux
+export TARGET_ARCH=amd64
 ```
 
 #### amd64
@@ -118,6 +143,8 @@ export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-amd64
 export GOOS=linux
 export GOARCH=amd64
+export TARGET_OS=linux
+export TARGET_ARCH=amd64
 ```
 
 ### 构建dapr镜像
@@ -275,18 +302,9 @@ https://github.com/dapr/dapr/blob/master/tests/docs/running-e2e-test.md#option-2
 ```bash
 $ make delete-test-namespace
 $ make create-test-namespace
-
 kubectl create namespace dapr-tests
 namespace/dapr-tests created
-kubectl create namespace dapr-tests-2
-namespace/dapr-tests-2 created
-
-# 如果测试的 namespace 不是 dapr-system，则需要手工建立 dapr-system
-# 文档里面忽略了这个问题
-$ kubectl create namespace dapr-system
 ```
-
-实际上会构建两个 namespace。
 
 ### 初始化heml
 
@@ -294,16 +312,16 @@ $ kubectl create namespace dapr-system
 $ make setup-helm-init
 
 helm repo add bitnami https://charts.bitnami.com/bitnami
-"bitnami" has been added to your repositories
+"bitnami" already exists with the same configuration, skipping
 helm repo add stable https://charts.helm.sh/stable
-"stable" has been added to your repositories
+"stable" already exists with the same configuration, skipping
 helm repo add incubator https://charts.helm.sh/incubator
-"incubator" has been added to your repositories
+"incubator" already exists with the same configuration, skipping
 helm repo update
 Hang tight while we grab the latest from your chart repositories...
 ...Successfully got an update from the "incubator" chart repository
-...Successfully got an update from the "bitnami" chart repository
 ...Successfully got an update from the "stable" chart repository
+...Successfully got an update from the "bitnami" chart repository
 Update Complete. ⎈Happy Helming!⎈
 ```
 
