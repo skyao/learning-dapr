@@ -1,10 +1,10 @@
 ---
-title: "IDE"
-linkTitle: "IDE"
-weight: 10
+title: "构建"
+linkTitle: "构建"
+weight: 40
 date: 2022-03-10
 description: >
-  在 IDE 中导入项目并构建
+  构建各个项目，将开发需要的依赖等都准备号
 ---
 
 

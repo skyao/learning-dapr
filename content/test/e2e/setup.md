@@ -95,17 +95,6 @@ export DAPR_TAG=dev
 export DAPR_NAMESPACE=dapr-tests
 export DAPR_TEST_NAMESPACE=dapr-tests
 export DAPR_TEST_REGISTRY=docker.io/skyao
-export DAPR_TEST_TAG=dev-linux-amd64
-export TARGET_OS=linux
-export TARGET_ARCH=arm64  
-# export GOOS=linux
-# export GOARCH=amd64
-
-export DAPR_REGISTRY=docker.io/skyao
-export DAPR_TAG=dev
-export DAPR_NAMESPACE=dapr-tests
-export DAPR_TEST_NAMESPACE=dapr-tests
-export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-arm64
 export GOOS=linux
 export GOARCH=arm64						# 默认是amd64，m1上本地运行需要修改为arm64
@@ -128,6 +117,8 @@ export GOOS=linux
 export GOARCH=amd64
 export TARGET_OS=linux
 export TARGET_ARCH=amd64
+#export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
+#export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
 ```
 
 #### amd64
@@ -145,6 +136,8 @@ export GOOS=linux
 export GOARCH=amd64
 export TARGET_OS=linux
 export TARGET_ARCH=amd64
+#export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
+#export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
 ```
 
 ### 构建dapr镜像

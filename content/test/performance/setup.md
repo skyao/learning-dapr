@@ -1,7 +1,7 @@
 ---
 title: "运行性能测试"
 linkTitle: "运行性能测试"
-weight: 40
+weight: 10
 date: 2021-05-09
 description: >
   运行Dapr的性能测试
@@ -31,6 +31,8 @@ export GOOS=linux
 export GOARCH=amd64
 export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-amd64
+#export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
+#export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
 ```
 
 #### amd64
@@ -40,13 +42,16 @@ export DAPR_TEST_TAG=dev-linux-amd64
 ```bash
 export DAPR_REGISTRY=docker.io/skyao
 export DAPR_TAG=dev
-export DAPR_TEST_NAMESPACE=dapr-tests
+export DAPR_NAMESPACE=dapr-tests
 export TARGET_OS=linux
 export TARGET_ARCH=amd64
 export GOOS=linux
 export GOARCH=amd64
+export DAPR_TEST_NAMESPACE=dapr-tests
 export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-amd64
+#export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
+#export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
 ```
 
 ### 构建并部署dapr到k8s中
@@ -59,7 +64,6 @@ $ make docker-build
 $ make docker-push
 
 $ make docker-deploy-k8s
-
 ```
 
 性能测试有一个额外的操作，实际是安装 redis / kafka / mongodb ：
@@ -87,7 +91,13 @@ helm install dapr-mongodb bitnami/mongodb -f ./tests/config/mongodb_override.yam
 
 ```
 
+可以视情况看是否要安装，或者制定安装需要的某一个组件：
 
+```bash
+make setup-test-env-kafka    
+make setup-test-env-mongodb  
+make setup-test-env-redis 
+```
 
 ### dapr相关的设置
 
@@ -114,6 +124,15 @@ configuration.dapr.io/daprsystem created
 ```bash
 $ make setup-test-components
 ```
+
+这个命令会将 `tests/config` 下的yaml文件都安装到k8s下，有些多，而且部分component文件在没有配置好外部组件时会导致 daprd 启动失败。安全起见，如果只是跑个别性能测试的test case，手工安装需要的就好了
+
+```bash
+k apply -f ./tests/config/dapr_in_memory_pubsub.yaml --namespace dapr-tests
+k apply -f ./tests/config/dapr_in_memory_state.yaml --namespace dapr-tests
+```
+
+
 
 ## 准备测试用的应用
 
