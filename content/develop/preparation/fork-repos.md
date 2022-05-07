@@ -1,7 +1,7 @@
 ---
 title: "Fork Dapr相关的仓库"
 linkTitle: "Fork仓库"
-weight: 20
+weight: 10
 date: 2022-01-24
 description: >
   Fork Dapr相关的仓库，以便修改和提交PR

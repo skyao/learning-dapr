@@ -140,7 +140,9 @@ libprotoc 3.13.0
 
 <img src="images/sdk-autogen-project-files.jpg" style="zoom:50%;" />
 
-## 有坑小心：proto文件缓存
+## 遇到过的问题
+
+### proto文件缓存
 
 有一个比较坑的事情是，download-maven-plugin 插件在下载文件时，不是每次都去请求，有时会从maven本地缓存中拿文件。
 
@@ -164,3 +166,23 @@ rm -rf ~/.m2/repository/.cache/download-maven-plugin/
 mvn generate-sources
 ```
 
+### Error extracting protoc for version 3.17.3 错误
+
+在配置 Artifactory 开启 mirror 之后，遇到一个奇怪的问题：
+
+```bash
+[ERROR] Failed to execute goal com.github.os72:protoc-jar-maven-plugin:3.11.4:run (default) on project dapr-sdk-autogen: Error extracting protoc for version 3.17.3: Unsupported platform: protoc-3.17.3-linux-x86_64.exe -> [Help 1]
+org.apache.maven.lifecycle.LifecycleExecutionException: Failed to execute goal com.github.os72:protoc-jar-maven-plugin:3.11.4:run (default) on project dapr-sdk-autogen: Error extracting protoc for version 3.17.3
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute (MojoExecutor.java:306)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:211)
+......
+Caused by: org.apache.maven.plugin.MojoExecutionException: Error extracting protoc for version 3.17.3
+......
+Caused by: java.io.FileNotFoundException: Unsupported platform: protoc-3.17.3-linux-x86_64.exe
+......
+
+```
+
+修改 maven settings.xml ，不使用 artifactory 而是直接连接 maven 中央仓库，就可以回避这个问题。
+
+参考： https://github.com/os72/protoc-jar-maven-plugin/issues/68
