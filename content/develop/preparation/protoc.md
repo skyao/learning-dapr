@@ -85,9 +85,12 @@ TBD
 ```bash
 # 进入 dapr/dapr 仓库
 $ cd dapr 
-$ make init-proto
-go get google.golang.org/protobuf/cmd/protoc-gen-go@v1.25.0 google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
-go: found google.golang.org/protobuf/cmd/protoc-gen-go in google.golang.org/protobuf v1.25.0
+$ make init-proto       
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
+go: downloading google.golang.org/protobuf v1.26.0
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+go: downloading google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
+go: downloading google.golang.org/protobuf v1.23.0
 ```
 
 ## 步骤三：从proto生成代码
@@ -106,6 +109,8 @@ protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc
 protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc_opt=require_unimplemented_servers=false,module=github.com/dapr/dapr ./dapr/proto/sentry/v1/*.proto
 go mod tidy
 ```
+
+执行 `git status` 命令，对比一下新生成的代码和dapr 仓库中已经保存的代码，如果代码没有改动说明我们的protoc代码生成和dapr项目保持一致了。
 
 ## 常见错误
 

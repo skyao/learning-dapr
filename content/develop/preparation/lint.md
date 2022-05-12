@@ -1,7 +1,7 @@
 ---
 title: "为lint做准备"
 linkTitle: "lint"
-weight: 30
+weight: 40
 date: 2022-04-08
 description: >
   安装配置 golangci-lint、gofumpt、goimports
@@ -9,7 +9,9 @@ description: >
 
 ## golangci-lint
 
-### amd64机器上安装
+### amd64 机器上安装
+
+> 适用于 amd64 linux 和 macOS。
 
 dapr提供了 `make lint`  target 来执行  golangci-lint， 如果没有安装 golangci-lint 则会报错：
 
@@ -21,91 +23,57 @@ make: golangci-lint: Command not found
 make: *** [Makefile:72: lint] Error 127
 ```
 
+之前dapr用的是 v1.31 老版本，在2022年5月之后， dapr CI 中采用的是最新版本，具体是 golangci-lint 1.45.2。
+
 安装方式参考 https://golangci-lint.run/usage/install/ 。linux下执行如下命令：
 
 ```bash
-$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.43.0
-golangci/golangci-lint info checking GitHub for tag 'v1.43.0'
-golangci/golangci-lint info found version: 1.43.0 for v1.43.0/linux/amd64
+$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
+golangci/golangci-lint info checking GitHub for tag 'v1.45.2'
+golangci/golangci-lint info found version: 1.45.2 for v1.45.2/linux/amd64
 golangci/golangci-lint info installed /home/sky/work/soft/gopath/bin/golangci-lint
 
 $ golangci-lint --version
-golangci-lint has version 1.43.0 built from 861262b7 on 2021-11-03T11:57:46Z
-```
-
-再次执行 make lint 进行检查，发现一堆输出：
-
-```bash
-make lint
-# Due to https://github.com/golangci/golangci-lint/issues/580, we need to add --fix for windows
-golangci-lint run --timeout=20m
-WARN [runner] The linter 'golint' is deprecated (since v1.41.0) due to: The repository of the linter has been archived by the owner.  Replaced by revive. 
-config/decode.go:107:21      godot             Comment should end in a period
-config/decode.go:112:27      godot             Comment should end in a period
-config/decode.go:117:27      godot             Comment should end in a period
-logger/dapr_logger.go:31:17  revive            var-declaration: should omit type string from declaration of var DaprVersion; it will be inferred from the right-hand side
-logger/dapr_logger.go:71:16  exhaustivestruct  DisableTimestamp, DisableHTMLEscape, DataKey, CallerPrettyfier, PrettyPrint are missing in JSONFormatter
-logger/dapr_logger.go:76:16  exhaustivestruct  ForceColors, DisableColors, ForceQuote, DisableQuote, EnvironmentOverrideColors, DisableTimestamp, FullTimestamp, DisableSorting, SortingFunc, DisableLevelTruncation, PadLevelText, QuoteEmptyFields, CallerPrettyfier are missing in TextFormatter
-config/decode.go:86:3        forcetypeassert   type assertion must be checked
-config/decode.go:89:3        forcetypeassert   type assertion must be checked
-```
-
-检查对比了一下 dapr CI 中是怎么进行 lint 检测的，发现原来 dapr ci 中用的是 golangci-lint ‘v1.31’ 版本：
-
-```bash
-Requested golangci-lint 'v1.31', using 'v1.31.0', calculation took 119ms
-Installing golangci-lint v1.31.0...
-Downloading https://github.com/golangci/golangci-lint/releases/download/v1.31.0/golangci-lint-1.31.0-linux-amd64.tar.gz ...
-/usr/bin/tar xz --warning=no-unknown-keyword -C /home/runner -f /home/runner/work/_temp/0f22eea4-f347-44ce-af0e-a2575ae885ef
-Installed golangci-lint into /home/runner/golangci-lint-1.31.0-linux-amd64/golangci-lint in 1106ms
-```
-
-删除安装的1.43版本，重新安装1.31版本：
-
-```bash
-$ rm /home/sky/work/soft/gopath/bin/golangci-lint
-$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
-golangci/golangci-lint info checking GitHub for tag 'v1.31.0'
-golangci/golangci-lint info found version: 1.31.0 for v1.31.0/linux/amd64
-golangci/golangci-lint info installed /home/sky/work/soft/gopath/bin/golangci-lint
-$ golangci-lint --version
-golangci-lint has version 1.31.0 built from 3d6d0e7 on 2020-09-07T15:14:41Z
-```
-
-再次执行，这次结果就和 dapr ci 对应上了。
-
-```bash
-$ make lint
-# Due to https://github.com/golangci/golangci-lint/issues/580, we need to add --fix for windows
-golangci-lint run --timeout=20m
+golangci-lint has version 1.45.2 built from 8bdc4d3f on 2022-03-24T11:51:26Z
 ```
 
 {{% alert title="切记" color="warning" %}}
-golangci-lint 一定要安装 1.31 版本！
+golangci-lint 一定要安装对应的版本！
 {{% /alert %}}
 
 ### m1 macbook上安装
 
-在 m1 macbook 上， 由于 1.31 版本发布较早，没有提供对 m1 （也就是darwin-arm64）的支持，因此上面的脚本在运行时并不能自动下载安装：
+在 m1 macbook 上， dapr之前使用的 1.31 版本发布较早，没有提供对 m1 （也就是darwin-arm64）的支持，但最新的dapr改用 1.45.2 版本之后就支持 arm64 了，所以可以用同样的方式安装：
 
 ```bash
-$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
-golangci/golangci-lint info checking GitHub for tag 'v1.31.0'
-golangci/golangci-lint info found version: 1.31.0 for v1.31.0/darwin/arm64
+$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
+golangci/golangci-lint info checking GitHub for tag 'v1.45.2'
+golangci/golangci-lint info found version: 1.45.2 for v1.45.2/linux/amd64
+golangci/golangci-lint info installed /home/sky/work/soft/gopath/bin/golangci-lint
+golangci/golangci-lint info checking GitHub for tag 'v1.45.2'
+golangci/golangci-lint info found version: 1.45.2 for v1.45.2/darwin/arm64
+golangci/golangci-lint info installed /Users/sky/work/soft/gopath/bin/golangci-lint
+ 
+$ golangci-lint --version
+golangci-lint has version 1.45.2 built from 8bdc4d3f on 2022-03-24T11:51:26Z
 ```
 
-解决方法就是开启 Rosetta 来兼容 intel 芯片：
+注意：golangci-lint  1.45.2 版本似乎对 go 有版本要求，我在 golang 1.17 版本下运行会报错：
 
-[If you need to install Rosetta on your Mac - Apple Support](https://support.apple.com/en-us/HT211861)
+```bash
+$ golangci-lint --version
 
-通常在第一次运行基于inte芯片构建的应用时会提示。
+panic: load embedded ruleguard rules: rules/rules.go:13: can't load fmt
 
-然后手工下载 v1.31.0 的 darwin-amd64 二进制文件：
+goroutine 1 [running]:
+github.com/go-critic/go-critic/checkers.init.22()
+	github.com/go-critic/go-critic@v0.6.2/checkers/embedded_rules.go:46 +0x494
 
-- https://github.com/golangci/golangci-lint/releases/tag/v1.31.0
-- https://github.com/golangci/golangci-lint/releases/download/v1.31.0/golangci-lint-1.31.0-darwin-amd64.tar.gz
+$ go version  
+go version go1.17.8 darwin/arm64
+```
 
-将解压缩得到的 golangci-lint 文件移动到 gopath 下的 bin 目录即可。
+升级 golang 到 1.18 就正常了。
 
 ## gofumpt
 
@@ -197,6 +165,23 @@ tests/perf/utils/grpc_helpers.go
 -  "Code Style" -> "Go" -> "other" 中, 勾选 "add a leading space to comments"，这会在注释内容前加一个空格
 
   ![goland3](images/goland3.png)
+
+### 配置vs code
+
+参考： [Formatting Go code with goimports (hyr.mn)](https://hyr.mn/gofmt/)
+
+打开 File -> Preferences -> Settings， 搜索 "format on save"，勾选:
+
+![vscode-format-on-save](images/vscode-format-on-save.png)
+
+搜索 go:format，在 format tool 中选择 goimports: 
+
+![vscode-goimports](images/vscode-goimports.png)
+
+注意：
+
+1. 如果 go:format 搜索时找不到 extends / go，则应该是没有安装 go extensin，或者安装之后没有重启 vs code
+2. 下拉框选 goimports 时如果报错没有安装 goimports，点安装即可
 
 ## 参考资料
 

@@ -11,7 +11,7 @@ description: >
 
 
 
-### dapr
+## 在终端中构建
 
 在终端中执行以下命令：
 
@@ -25,3 +25,32 @@ make check-diff
 
 备注： conf-tests 和 e2e-tests-zeebe 在本地是跑不起来的。
 
+
+
+
+
+## 在vs code中构建
+
+### 设置 build tag
+
+在 vs code 中打开 dapr/dapr 项目之后，会遇到报错：
+
+![vscode-build-error](images/vscode-build-error.png)
+
+原因是。MockActors 定义在  `pkg/actors/actors_mock.go` 这个文件中，但它的 build tag 设置为 unit，而默认 vs code 没有使用 build tag，所以这个 MockActors 文件不在编译范围内，导致使 MockActors 的其他 go 文件报错。
+
+![vscode-build-tags](images/vscode-build-tags.png)
+
+解决方式是设置 vs code 的 build tags（以及test tags），打开项目根目录下的 `.vscoee/settings.json`，加入以下内容:
+
+```json
+{
+    ......
+    "go.buildFlags": [
+        "-tags=unit,e2e"
+    ],
+    "go.testTags": "unit,e2e",
+}
+```
+
+重启 vscode 生效（不知道有没有其他不重启就能生效的方法）。
