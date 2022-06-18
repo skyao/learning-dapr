@@ -17,24 +17,6 @@ description: >
 
 首先要设置相关的环境变量。
 
-#### m1 交叉测试
-
-在 m1 macbook 上，构建给远程的 amd64 docker 和 amd64 k8s 运行：
-
-```bash
-export DAPR_REGISTRY=docker.io/skyao
-export DAPR_TAG=dev
-export DAPR_TEST_NAMESPACE=dapr-tests
-export TARGET_OS=linux
-export TARGET_ARCH=amd64
-export GOOS=linux
-export GOARCH=amd64
-export DAPR_TEST_REGISTRY=docker.io/skyao
-export DAPR_TEST_TAG=dev-linux-amd64
-#export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
-#export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
-```
-
 #### amd64
 
 在 amd64 机器上：
@@ -50,8 +32,8 @@ export GOARCH=amd64
 export DAPR_TEST_NAMESPACE=dapr-tests
 export DAPR_TEST_REGISTRY=docker.io/skyao
 export DAPR_TEST_TAG=dev-linux-amd64
-#export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
-#export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
+export DAPR_TEST_MINIKUBE_IP=192.168.100.40		# use this in IDE
+export MINIKUBE_NODE_IP=192.168.100.40 			# use this in make command
 ```
 
 ### 构建并部署dapr到k8s中
@@ -66,7 +48,24 @@ $ make docker-push
 $ make docker-deploy-k8s
 ```
 
-性能测试有一个额外的操作，实际是安装 redis / kafka / mongodb ：
+如果之前有过部署，则需要在重新部署前删除之前的部署，有两种情况：
+
+1. 只清除 dapr 的控制平面
+
+   ```bash
+   $ helm uninstall dapr  -n dapr-tests
+   $ make docker-deploy-k8s
+   ```
+
+2. 清除所有 dapr 内容
+
+   ```bash
+   $ helm uninstall dapr  -n dapr-tests
+   $ make delete-test-namespace 
+   # 再重复上面的构建和部署过程
+   ```
+
+类似 e2e 测试，性能测试中本有一个额外的操作，实际是安装 redis / kafka / mongodb ：
 
 ```bash
 $ make setup-3rd-party
@@ -91,11 +90,9 @@ helm install dapr-mongodb bitnami/mongodb -f ./tests/config/mongodb_override.yam
 
 ```
 
-可以视情况看是否要安装，或者制定安装需要的某一个组件：
+对于性能测试，没有必要，可以视情况（是否要测试 actor 相关的功能）看是否要安装 redis：
 
 ```bash
-make setup-test-env-kafka    
-make setup-test-env-mongodb  
 make setup-test-env-redis 
 ```
 
@@ -122,35 +119,37 @@ configuration.dapr.io/daprsystem created
 准备测试用的components：
 
 ```bash
+# 切记不要用这个命令
 $ make setup-test-components
 ```
 
 这个命令会将 `tests/config` 下的yaml文件都安装到k8s下，有些多，而且部分component文件在没有配置好外部组件时会导致 daprd 启动失败。安全起见，如果只是跑个别性能测试的test case，手工安装需要的就好了
 
 ```bash
-k apply -f ./tests/config/dapr_in_memory_pubsub.yaml --namespace dapr-tests
-k apply -f ./tests/config/dapr_in_memory_state.yaml --namespace dapr-tests
+# 对于 actor 相关的性能测试案例，需要安装 redis 并开启 statestore-actos
+# 由于redis 配置中使用到了 secret，因此需要安装 kubernetes_redis_secret
+# make setup-test-env-redis 
+$ k apply -f ./tests/config/dapr_redis_state_actorstore.yaml -n dapr-tests
+$ k apply -f ./tests/config/kubernetes_redis_secret.yaml -n dapr-tests
+
+# 对于 pubsub 的测试，只需要开启 in-memory pubsub
+$ k apply -f ./tests/config/dapr_in_memory_pubsub.yaml -n dapr-tests
+
+# 对于 state 的测试，只需要开启 in-memory state
+$ k apply -f ./tests/config/dapr_in_memory_state.yaml -n dapr-tests
 ```
-
-
 
 ## 准备测试用的应用
 
 ```bash
 $ make build-perf-app-all
-
 $ make push-perf-app-all
 ```
 
-备注：发现 `make build-perf-app-all` 时在m1 macbook上构建出来的测试应用的二进制文件有问题，在k8s上会出错。需要增加 GOOS 和 GOARCH 参数。
-
-> 见issue：https://github.com/dapr/dapr/issues/4426
-
-如果要节约时间，只单独构建和推送某一个性能测试的应用，可以直接调用 make target:
+如果是在开发或者修改某一个测试案例，要节约时间，不需要构建和发布所有的测试案例。只单独构建和推送某一个性能测试的应用，可以直接调用 make target，如针对 service_invocation_http 这个 test case :
 
 ```bash
 $ make build-perf-app-service_invocation_http
-
 $ make push-perf-app-service_invocation_http
 ```
 
@@ -164,13 +163,24 @@ brew install jq
 
 
 ## 运行性能测试
+# 切记不要跑 test-perf-all，由于环境变量在各个perf test case中的设置要求不同，全部一起跑会有问题。
+# 在本地（无论是IDE还是终端）不要跑 test-perf-all，只能单独跑某一个 perf test case
+# make test-perf-all
+make test-perf-xxxxx
+# 特别注意，如果没有设置性能测试输入条件相关的环境变量，直接默认跑，有一些 perf test case 是可以跑起来的
+make test-perf-state_get_http
+make test-perf-state_get_grpc
+make test-perf-service_invoke_http
+make test-perf-service_invoke_grpc
+make test-perf-pubsub_publish_grpc
 
-```bash
-make test-perf-all
+# 有部分 perf test 是跑不起来的，会报错
+make test-perf-actor_timer. # fortio报错，HTTP响应为 405 Method Not Allow，必须用 HTTP POST
+
 ```
 
 
-特别注意日志文件中的这些内容：
+跑的时候特别注意日志文件中的这些内容：
 
 ```bash
 2022/03/25 18:02:05 Installing test apps...
@@ -180,50 +190,17 @@ make test-perf-all
 
 仔细检查 app 的镜像信息，包括 tag 要求是 "dev-linux-amd64", image registry 要求是自己设定的类似 "docker.io/skyao"，否则 pod 会无法启动。
 
+最好先 `env | grep DAPR` 看一下设置的环境变量是否有生效。
+
 
 
 ## 本地debug
 
 perf test 的测试案例都是用 go test 编写，原则上只要前面步骤准备好，是可以在本地 IDE 中以 debug 方式启动 perf test 的测试案例，然后进行 debug 的。
 
-
+> 特别注意：actor 相关的 test case 要设置好性能测试输入条件的环境变量
 
 ## 特殊情况
-
-### 二进制文件不可用
-
-在 m1 macbook 上构建，运行 `make test-perf-all` 时报错：
-```bash
-$ k get pods -A
-NAMESPACE     NAME                                     READY   STATUS             RESTARTS   AGE
-dapr-tests    testapp-85d8d9db89-p6mms                 0/2     CrashLoopBackOff   13         11m
-
-$ k logs testapp-85d8d9db89-p6mms -n dapr-tests testapp
-standard_init_linux.go:228: exec user process caused: exec format error
-```
-
-没办法，换普通pc机器再试。dapr 对 m1 的支持是真的不好。
-
-```bash
-$ make build-perf-app-service_invocation_http
-docker build -f ./tests/apps/perf/service_invocation_http/Dockerfile ./tests/apps/perf/service_invocation_http/. -t docker.io/skyao/perf-service_invocation_http:dev-linux-amd64
-
- => [stage-1 1/3] FROM docker.io/library/debian:buster-slim@sha256:bbf8ca5a94fe10b78b681d0f4efe8dbc23839d26e811ab6a1f252c7663c7e244 
- => CACHED [build_env 2/4] WORKDIR /app                                                                                                                                                                                            
- => CACHED [build_env 3/4] COPY app.go go.mod ./  
- => CACHED [build_env 4/4] RUN go get -d -v && go build -o app .   
- => CACHED [stage-1 2/3] COPY --from=build_env /app/app /                                                                                                                                                                          
- => exporting to image   
- => => exporting layers    
- => => writing image sha256:e2a015c035b224c846ec29773d5da68c765df0cf4747d78e648d52c1ed61970e    
- => => naming to docker.io/skyao/perf-service_invocation_http:dev-linux-amd64 
-```
-
-应该是 `go build -o app .` 这里的问题，没有加上 `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 `
-
-修改代码，增加GOOS=linux GOARCH=amd64， 验证通过。提交的PR为：
-
-[[m1 support\]Improve go build in dockerfile to support build docker images on m1 macbook · Issue #4426 · dapr/dapr (github.com)](https://github.com/dapr/dapr/issues/4426)
 
 ### 彻底清理namespace
 

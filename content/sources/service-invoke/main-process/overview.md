@@ -120,17 +120,80 @@ participant user_code_server [
     server
 ]
 end box
-
+user_code_server -> SDK_server: AddServiceInvocationHandler("method-1")
+SDK_server -> SDK_server: save handler in invokeHandlers["method-1"]
+SDK_server --> user_code_server
 user_code_client -> SDK_client : Invoke\nService() 
 note left: appId="app-2"\nmethodName="method-1"
 SDK_client -[#blue]> daprd_client : gRPC (localhost)
-note right: gRPC API @ 50001
+note right: gRPC API @ 50001\n/dapr.proto.runtime.v1.Dapr/InvokeService
 |||
 daprd_client -[#red]> daprd_server : gRPC (remote call)
-note right: internal API @ random free port
+note right: internal API @ random free port\n/dapr.proto.internals.v1.ServiceInvocation/CallLocal
 |||
 daprd_server -[#blue]> SDK_server : gRPC (localhost)
-note right: 50001
+note right: 50001\n/dapr.proto.runtime.v1.AppCallback/OnInvoke
+SDK_server -> SDK_server: get handler by invokeHandlers["method-1"]
+SDK_server -> user_code_server : invoke handler of "method-1"
+
+SDK_server <-- user_code_server
+daprd_server <[#blue]-- SDK_server
+daprd_client <[#red]-- daprd_server
+SDK_client <[#blue]-- daprd_client
+user_code_client <-- SDK_client
+```
+
+### gRPC  proxying 方式
+
+```plantuml
+title Service Invoke via gRPC proxying
+hide footbox
+skinparam style strictuml
+box "App-1"
+participant user_code_client [
+    =App-1
+    ----
+    client
+]
+participant SDK_client [
+    =SDK
+    ----
+    client
+]
+end box
+participant daprd_client [
+    =daprd
+    ----
+    client
+]
+participant daprd_server [
+    =daprd
+    ----
+    server
+]
+
+box "App-2"
+participant SDK_server [
+    =gRPC
+    ----
+    server
+]
+participant user_code_server [
+    =App-2
+    ----
+    server
+]
+end box
+user_code_server -> SDK_server
+SDK_server --> user_code_server
+user_code_client -[#blue]> daprd_client : gRPC (localhost)
+note right: gRPC\n/user.services.ServiceName/Method-1
+|||
+daprd_client -[#red]> daprd_server : gRPC proxy (remote call)
+note right: gRPC\n/user.services.ServiceName/Method-1
+|||
+daprd_server -[#blue]> SDK_server : gRPC (localhost)
+note right: gRPC\n/user.services.ServiceName/Method-1
 SDK_server -> user_code_server : 
 
 SDK_server <-- user_code_server

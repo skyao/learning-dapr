@@ -13,7 +13,7 @@ description: >
 
 安装Protoc，目前 daprd 要求的版本是 [v3.14.0](https://github.com/protocolbuffers/protobuf/releases/tag/v3.14.0)。
 
-具体见 [Daprd Proto代码生成]( {{< relref "/docs/daprd/develop/codegen.md" >}})
+具体见 [Daprd Proto代码生成]( {{< relref "/develop/preparation/protoc.md" >}})
 
 sdk 和 daprd保持一致，但实际目前go sdk采用的是 protoc 3.11.2。
 

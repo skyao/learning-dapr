@@ -7,9 +7,38 @@ description: >
   性能测试案例 service invoke http 的实现
 ---
 
+## 运行性能测试
+
+打开 dapr/dapr 仓库下的 `.github/workflows/dapr-perf.yml` 文件，找到 service_invocation_http 的性能测试输入条件：
+
+```yaml
+      - name: Run Perf test service_invocation_http
+        if: env.TEST_PREFIX != ''
+        env:
+          DAPR_PERF_QPS: 1000
+          DAPR_PERF_CONNECTIONS: 16
+          DAPR_TEST_DURATION: 1m
+          DAPR_PAYLOAD_SIZE: 1024
+        run: make test-perf-service_invocation_http
+```
 
 
-## 主流程
+
+```bash
+# service_invocation_http
+export DAPR_PERF_QPS=1000
+export DAPR_PERF_CONNECTIONS=16
+export DAPR_TEST_DURATION=1m
+export DAPR_PAYLOAD_SIZE=1024
+unset DAPR_PAYLOAD
+make test-perf-service_invocation_http
+```
+
+
+
+
+
+## 主流程详细分析
 
 性能测试的主流程为：
 
@@ -79,9 +108,7 @@ func (tr *TestRunner) tearDown() {
 }
 ```
 
-
-
-## 测试应用准备
+### 测试应用准备
 
 对应到上面主流程中的 "步骤1: 准备两个app", 这里需要准备作为服务器端的 testapp 和作为客户端的 tester:
 
@@ -107,7 +134,7 @@ testApps := []kube.AppDescription{
 
 特别注意：`IngressEnabled:    true` 的设置。
 
-## 测试应用安装的流程
+### 测试应用安装的流程
 
 对应到上面主流程中的 "步骤3: 安装测试应用"。
 
@@ -347,9 +374,9 @@ log.Printf("Validating sidecar for app %v ....", m.app.AppName)
 
 
 
-## 等待测试应用就绪的流程
+### 等待测试应用就绪的流程
 
-### 等待流程就绪
+#### 等待流程就绪
 
 由于存在一个安装测试应用的流程， 而 k8s 部署/启动完成测试应用是需要一段时间的，因此，就需要一个机制能等待并检测到测试应用是否安装完成，这样才可以开启真正的测试即开始执行 testcase。
 
@@ -408,7 +435,7 @@ func TestServiceInvocationHTTPPerformance(t *testing.T) {
 1. 等待测试应用的 ingress 就绪
 2. 等待测试应用自身就绪
 
-#### 等待测试应用的 ingress 就绪
+##### 等待测试应用的 ingress 就绪
 
 因为 pod ip 不能直接在 k8s 下访问，因此需要通过 ingress 和 端口转发。前面安装测试应用的流程中作了 ingress 的创建和端口转发的创建，但生效是需要时间的。在 AcquireAppExternalURL() 方法中会等待 ingress 就绪：
 
@@ -472,7 +499,7 @@ func (m *AppManager) WaitUntilServiceState(isState func(*apiv1.Service, error) b
 
 但如果能正常工作，只是启动速度慢，那这里的10分钟怎么也够 ingress 生效的。
 
-#### 等待测试应用自身就绪
+##### 等待测试应用自身就绪
 
 实现代码如下：
 
@@ -503,29 +530,6 @@ func HTTPGetNTimes(url string, n int) ([]byte, error) {
 每秒检查一次，重试 60 次。60 秒之后只要启动成功就可以。
 
 >  备注：这里的检查顺序，先检查 testapp，再检查 tester app，所以如果两者都启动的慢的话，顺序偏后的 tester app 有更多的启动时间。
-
-
-
-### ip地址的相关细节
-
-testapp 和 tester 对应的 pod 和 podIP是：
-
-```bash
-$ k get pods -n dapr-tests
-NAME                                     READY   STATUS    RESTARTS   AGE
-testapp-85d8d9db89-7lrpg                 2/2     Running   0          9m54s
-tester-7944b6bb68-55fjv                  2/2     Running   0          9m45s
-
-$ k get pods -n dapr-tests testapp-85d8d9db89-7lrpg -o yaml | grep "podIP:"
-  podIP: 10.244.0.79
-  
-$ k get pods -n dapr-tests tester-7944b6bb68-55fjv -o yaml | grep "podIP:"
-  podIP: 10.244.0.80
-```
-
-所以，这里的 pod ip 地址和前面的测试应用的 url 是不相同的。
-
-TBD：后面再细看
 
 ### bug：总是卡在等待测试应用就绪上
 
@@ -587,7 +591,7 @@ Content-Length: 0
 
 排除这个问题之后，性能测试的案例就可以正常
 
-> 备注：我是在我本地机器 macbook 上跑测试案例的，案例和 azure 上的k8s集群通讯一直正常，但是就是有时可以访问 app 的external url，有时不能。没想到是这个原因，我还以为 azure 
+> 备注：我是在我本地机器 macbook 上跑测试案例的，案例和 azure 上的k8s集群通讯一直正常，但是就是有时可以访问 app 的external url，有时不能。没想到是这个原因
 
-## 执行性能测试
+
 
