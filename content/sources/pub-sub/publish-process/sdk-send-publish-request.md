@@ -1,5 +1,4 @@
 ---
-type: docs
 title: "客户端sdk发出publish请求"
 linkTitle: "SDK发出publish请求"
 weight: 30
@@ -22,16 +21,16 @@ client.publishEvent(
     singletonMap(Metadata."ttlInSeconds", "1000")).block();
 ```
 
-java sdk 中除了 service invoke 默认使用 HTTP ，其他方法都是默认使用 gRPC，在 DaprClientProxy 类中初始化了两个 daprclient：
+java SDK 中除了 service invoke 默认使用 HTTP ，其他方法都是默认使用 gRPC，在 DaprClientProxy 类中初始化了两个 daprclient：
 
 1. client 字段: 类型为 DaprClientGrpc，连接到 127.0.0.1:5001
 2. methodInvocationOverrideClient 字段：类型为 DaprClientHttp，连接到 127.0.0.1:3500
 
 ![](images/java-client-override.png)
 
-pubsub 方法默认走 gRPC ，使用的是 DaprClientGrpc 类型 （文件为 src/main/java/io/dapr/client/DaprClientGrpc.java）：
+pubsub 方法默认走 gRPC ，使用的是 `DaprClientGrpc` 类型 （文件为 `src/main/java/io/dapr/client/DaprClientGrpc.java`）：
 
-```bash
+```java
   @Override
   public Mono<Void> publishEvent(PublishEventRequest request) {
     try {
@@ -99,7 +98,7 @@ client, err := dapr.NewClient()
 err := client.PublishEvent(ctx, pubsubName, topicName, data)
 ```
 
-Go sdk 中定义了 Client 接口，文件为 `client/client.go`：
+Go SDK 中定义了 Client 接口，文件为 `client/client.go`：
 
 ```go
 // Client is the interface for Dapr client implementation.

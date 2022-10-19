@@ -10,90 +10,71 @@ description: >
 
 在 dapr runtime 启动进行初始化时，需要开启 API 端口并挂载相应的 handler 来接收并处理发布订阅中的发布请求。另外需要根据配置文件启动 pubsub component 以便连接到外部 message broker。
 
-## Dapr HTTP API Server(outbound)
-
-### 在 dapr runtime 中启动 HTTP server
-
-类似 service invoke。
-
-在 dapr runtime 启动时的初始化过程中，会启动 HTTP server， 代码在 `pkg/runtime/runtime.go` 中。
-
-### 挂载 PubSub 的 HTTP  端点
-
-在 HTTP API 的初始化过程中，会在 fast http server 上挂载 PubSub 的 HTTP  端点，代码在 `pkg/http/api.go` 中：
-
-```go
-func NewAPI(
-  appID string,
-	appChannel channel.AppChannel,
-	directMessaging messaging.DirectMessaging,
-  ......
-  	shutdown func()) API {
-  
-  	api := &api{
-		appChannel:               appChannel,
-		directMessaging:          directMessaging,
-		......
-	}
-  
-  	// 附加 PubSub 的 HTTP 端点
-  	api.endpoints = append(api.endpoints, api.constructPubSubEndpoints()...)
-}
-```
-
-PubSub 的 HTTP 端点的具体信息在 constructPubSubEndpoints() 方法中：
-
-```go
-func (a *api) constructPubSubEndpoints() []Endpoint {
-	return []Endpoint{
-		{
-			Methods: []string{fasthttp.MethodPost, fasthttp.MethodPut},
-			Route:   "publish/{pubsubname}/{topic:*}",
-			Version: apiVersionV1,
-			Handler: a.onPublish,
-		},
-	}
-}
-```
-
-注意这里的 Route 路径 "publish/{pubsubname}/{topic:*}"， dapr sdk 就是就通过这样的 url 来发起 HTTP publish 请求。
-
-```plantuml
-title Dapr Publish HTTP API 
-hide footbox
-skinparam style strictuml
-
-participant daprd_client [
-    =daprd
-    ----
-    producer
-]
-
--[#blue]> daprd_client : HTTP (localhost)
-note right: HTTP API @ 3500\n/v1.0/publish/{pubsubname}/{topic:*}
-|||
-<[#blue]-- daprd_client
-```
-
-## Dapr gRPC API Server(outbound)
+## 启动 Dapr gRPC API Server(outbound)
 
 ### 启动 gRPC 服务器
 
-类似 service invoke。
+在 dapr runtime 启动时的初始化过程中，会启动 gRPC server， 代码在 `pkg/runtime/runtime.go` 中：
 
-在 dapr runtime 启动时的初始化过程中，会启动 gRPC server， 代码在 `pkg/runtime/runtime.go` 中。
+```go
+func (a *DaprRuntime) initRuntime(opts *runtimeOpts) error {
+    // Create and start internal and external gRPC servers
+	grpcAPI := a.getGRPCAPI()
+    
+	err = a.startGRPCAPIServer(grpcAPI, a.runtimeConfig.APIGRPCPort)
+    ......
+}
+
+func (a *DaprRuntime) startGRPCAPIServer(api grpc.API, port int) error {
+	serverConf := a.getNewServerConfig(a.runtimeConfig.APIListenAddresses, port)
+	server := grpc.NewAPIServer(api, serverConf, a.globalConfig.Spec.TracingSpec, a.globalConfig.Spec.MetricSpec, a.globalConfig.Spec.APISpec, a.proxy)
+    if err := server.StartNonBlocking(); err != nil {
+		return err
+	}
+	......
+}
+
+// NewAPIServer returns a new user facing gRPC API server.
+func NewAPIServer(api API, config ServerConfig, ......) Server {
+	return &server{
+		api:         api,
+		config:      config,
+		kind:        apiServer, // const apiServer = "apiServer"
+		......
+	}
+}
+```
 
 ### 注册 Dapr API
 
-为了让 dapr runtime 的 gRPC  服务器能挂载 Dapr API，需要进行注册上去。
+为了让 dapr runtime 的 gRPC  服务器能挂载 Dapr API，需要将定义 dapr api 的 dapr service 注册到 gRPC 服务器上去。
 
-注册的代码实现在 `pkg/grpc/server.go` 中， StartNonBlocking() 方法在启动 grpc 服务器时，会进行服务注册。
+注册的代码实现在 `pkg/grpc/server.go` 中， StartNonBlocking() 方法在启动 grpc 服务器时，会进行服务注册：
+
+```go
+func (s *server) StartNonBlocking() error {
+		if s.kind == internalServer {
+			internalv1pb.RegisterServiceInvocationServer(server, s.api)
+		} else if s.kind == apiServer {
+            runtimev1pb.RegisterDaprServer(server, s.api)		// 注意：s.api (即 gRPC api 实现) 被传递进去
+		}
+		......
+}
+```
+
+而 RegisterDaprServer() 方法的实现代码在 `pkg/proto/runtime/v1/dapr_grpc.pb.go`:
+
+```go
+func RegisterDaprServer(s grpc.ServiceRegistrar, srv DaprServer) {
+	s.RegisterService(&Dapr_ServiceDesc, srv)					// srv 即 gRPC api 实现
+}
+```
 
 ### Dapr_ServiceDesc 定义
 
 在文件 `pkg/proto/runtime/v1/dapr_grpc.pb.go` 中有 Dapr Service 的 grpc 服务定义，这是 protoc 生成的 gRPC 代码。
 
-Dapr_ServiceDesc 中有 Dapr Service 各个方法的定义，和发布相关的是 `InvokeService` 方法：
+Dapr_ServiceDesc 中有 Dapr Service 各个方法的定义，和发布相关的是 `PublishEvent` 方法：
 
 ```go
 var Dapr_ServiceDesc = grpc.ServiceDesc{
@@ -153,6 +134,94 @@ func _Dapr_PublishEvent_Handler(srv interface{}, ctx context.Context, dec func(i
 ```
 
 最后调用到了 DaprServer 接口实现的 PublishEvent 方法，也就是 gPRC API 实现。
+
+## 启动 Dapr HTTP API Server(outbound)
+
+### 在 dapr runtime 中启动 HTTP server
+
+在 dapr runtime 启动时的初始化过程中，会启动 HTTP server， 代码在 `pkg/runtime/runtime.go` 中
+
+```go
+dapr runtime 的 HTTP server 用的是 fasthttp。
+
+在 dapr runtime 启动时的初始化过程中，会启动 HTTP server， 代码在 pkg/runtime/runtime.go 中：
+
+func (a *DaprRuntime) initRuntime(opts *runtimeOpts) error {
+  ......
+  // Start HTTP Server
+	err = a.startHTTPServer(a.runtimeConfig.HTTPPort, a.runtimeConfig.PublicPort, a.runtimeConfig.ProfilePort, a.runtimeConfig.AllowedOrigins, pipeline)
+	if err != nil {
+		log.Fatalf("failed to start HTTP server: %s", err)
+	}
+  ......
+}
+
+func (a *DaprRuntime) startHTTPServer(......) error {
+	a.daprHTTPAPI = http.NewAPI(......)
+
+	server := http.NewServer(a.daprHTTPAPI, ......)
+  if err := server.StartNonBlocking(); err != nil {		// StartNonBlocking 启动 fasthttp server
+		return err
+	}
+}
+```
+
+### 挂载 PubSub 的 HTTP  端点
+
+在 HTTP API 的初始化过程中，会在 fast http server 上挂载 PubSub 的 HTTP  端点，代码在 `pkg/http/api.go` 中：
+
+```go
+func NewAPI(
+  appID string,
+	appChannel channel.AppChannel,
+	directMessaging messaging.DirectMessaging,
+  ......
+  	shutdown func()) API {
+  
+  	api := &api{
+		appChannel:               appChannel,
+		directMessaging:          directMessaging,
+		......
+	}
+  
+  	// 附加 PubSub 的 HTTP 端点
+  	api.endpoints = append(api.endpoints, api.constructPubSubEndpoints()...)
+}
+```
+
+PubSub 的 HTTP 端点的具体信息在 constructPubSubEndpoints() 方法中：
+
+```go
+func (a *api) constructPubSubEndpoints() []Endpoint {
+	return []Endpoint{
+		{
+			Methods: []string{fasthttp.MethodPost, fasthttp.MethodPut},
+			Route:   "publish/{pubsubname}/{topic:*}",
+			Version: apiVersionV1,
+			Handler: a.onPublish,
+		},
+	}
+}
+```
+
+注意这里的 Route 路径 "publish/{pubsubname}/{topic:*}"， dapr sdk 就是就通过这样的 url 来发起 HTTP publish 请求。
+
+```plantuml
+title Dapr Publish HTTP API 
+hide footbox
+skinparam style strictuml
+
+participant daprd_client [
+    =daprd
+    ----
+    producer
+]
+
+-[#blue]> daprd_client : HTTP (localhost)
+note right: HTTP API @ 3500\n/v1.0/publish/{pubsubname}/{topic:*}
+|||
+<[#blue]-- daprd_client
+```
 
 ## pubsub 组件初始化
 
@@ -252,7 +321,7 @@ func (a *DaprRuntime) initRuntime(opts *runtimeOpts) error {
 }
 ```
 
-需要主要的是，pubSubRegistry 中保存的组件列表是所有的被dapr runtime 支持的组件列表，但是，不是每个组件在 runtime 启动时都会被装载。组件的安装时按需的，由组件配置文件（yaml）来决定装载和初始化那些组件的示例。
+需要注意的是，pubSubRegistry 中保存的组件列表是所有的被 dapr runtime 支持的组件列表，但是，不是每个组件在 runtime 启动时都会被装载。组件的安装时按需的，由组件配置文件（yaml）来决定装载和初始化那些组件的示例。
 
 ### runtime 装载 pubsub 组件
 
