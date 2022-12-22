@@ -117,3 +117,47 @@ daprd_client -[#red]> daprd_server : gRPC (remote call)
 note right: internal API @ ramdon free port\n/dapr.proto.internals.v1.ServiceInvocation/CallLocal
 ```
 
+
+
+## 实现细节
+
+### 获取远程地址
+
+```plantuml
+hide footbox
+skinparam style strictuml
+
+participant directMessaging 
+participant "Name resolver\n(consul/kubenetes/mdns)" as localNameReSolver
+
+directMessaging -> localNameReSolver : ResolveID()
+localNameReSolver -> localNameReSolver: loadBalance()
+note right: kubernetes: dns name\ndns: dns name\nconsul: one address(random)\nmdsn: one address(round robbin)
+localNameReSolver --> directMessaging
+note right: return only one address in local cluster
+
+
+
+```
+
+
+```plantuml
+hide footbox
+skinparam style strictuml
+
+participant directMessaging 
+participant "Local Name resolver\n(consul/kubenetes/mdns)" as localNameReSolver
+participant "External Name resolver\n(synchronizer)" as externalNameReSolver
+
+directMessaging -> localNameReSolver : ResolveID()
+localNameReSolver --> directMessaging
+note right: return service instance list in local cluster
+directMessaging -[#red]> externalNameReSolver : ResolveID()
+externalNameReSolver --> directMessaging
+note right: return service instance list in external clusters
+directMessaging -[#red]> directMessaging: combine the instance list
+directMessaging -[#red]> directMessaging: filter by cluster strategy
+note right: local-first\nexternal-first\nbroadcast\nlocal-only\nexternal-onluy
+directMessaging -> directMessaging: loadBalance()
+```
+
