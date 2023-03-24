@@ -2,7 +2,7 @@
 title: "安装Protoc"
 linkTitle: "Protoc"
 weight: 100
-date: 2021-03-30
+date: 2022-10-29
 description: >
   安装Protoc用于从proto文件生成代码
 ---
@@ -31,7 +31,7 @@ sudo rm /usr/local/bin/protoc
 下载并解压缩之后，按照 readme.txt 文件的提示，复制bin文件和clude目录到合适的位置：
 
 ```bash
-$ unzip protoc-21.1-linux-x86_64.zip
+$ unzip protoc-3.21.0-linux-x86_64.zip
 
 $ sudo cp -r include/google/ /usr/local/include/
 # 需要设置权限可读和可执行，755
@@ -48,6 +48,8 @@ libprotoc 3.21.1
 ```
 
 ### Macos-amd64 安装
+
+> 备注：未更新，我没有intel芯片的macos了。
 
 如果之前安装过其他，则需要删除已经安装的版本：
 
@@ -76,7 +78,25 @@ libprotoc 3.14.0
 
 ### Macos-arm64 安装
 
-TBD
+```bash
+cd protoc-21.1-osx-aarch_64
+sudo cp -r include/ /usr/local/include/
+# 需要设置权限可读和可执行，755
+$ sudo chmod -R 755 /usr/local/include/google
+$ sudo cp bin/protoc /usr/local/bin/
+$ sudo chmod +x /usr/local/bin/protoc
+```
+
+如果遇到macos禁止protoc运行，在设置中找到 "security & Privacy"，会有 protoc 运行的提示，点击容许即可。
+
+protoc 安装完成之后，验证一下版本：
+
+```bash
+$ protoc --version
+libprotoc 3.21.1
+```
+
+
 
 ## 步骤二：初始化proto工具
 
@@ -85,12 +105,11 @@ TBD
 ```bash
 # 进入 dapr/dapr 仓库
 $ cd dapr 
-$ make init-proto       
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
-go: downloading google.golang.org/protobuf v1.26.0
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
-go: downloading google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-go: downloading google.golang.org/protobuf v1.23.0
+$ make init-proto
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.0
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
+go: downloading google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
+go: downloading google.golang.org/grpc v1.2.0
 ```
 
 ## 步骤三：从proto生成代码
