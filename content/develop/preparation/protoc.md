@@ -17,7 +17,7 @@ https://github.com/dapr/dapr/tree/master/dapr
 
 ## 步骤一：安装Protoc
 
-目前 daprd 要求的版本是 [v3.21.0](https://github.com/protocolbuffers/protobuf/releases/tag/v21.1)。
+目前 daprd 要求的版本是 [[v3.21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12) ](https://github.com/protocolbuffers/protobuf/releases/tag/v21.1)。
 
 ### linux-amd64 安装
 
@@ -31,7 +31,8 @@ sudo rm /usr/local/bin/protoc
 下载并解压缩之后，按照 readme.txt 文件的提示，复制bin文件和clude目录到合适的位置：
 
 ```bash
-$ unzip protoc-3.21.0-linux-x86_64.zip
+$ wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-linux-x86_64.zip
+$ unzip protoc-21.12-linux-x86_64.zip
 
 $ sudo cp -r include/google/ /usr/local/include/
 # 需要设置权限可读和可执行，755
@@ -44,7 +45,7 @@ $ sudo chmod +x /usr/local/bin/protoc
 
 ```bash
 $ protoc --version
-libprotoc 3.21.1
+libprotoc 3.21.12
 ```
 
 ### Macos-amd64 安装
@@ -106,10 +107,8 @@ libprotoc 3.21.1
 # 进入 dapr/dapr 仓库
 $ cd dapr 
 $ make init-proto
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.0
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
-go: downloading google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
-go: downloading google.golang.org/grpc v1.2.0
 ```
 
 ## 步骤三：从proto生成代码

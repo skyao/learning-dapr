@@ -12,7 +12,7 @@ description: >
 在终端中执行以下命令：
 
 ```bash
-make go.mod
+make tidy
 make test
 make lint
 make check-diff

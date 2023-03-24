@@ -20,7 +20,7 @@ https://github.com/dapr/dapr/blob/master/go.mod
 ```go
 module github.com/dapr/dapr
 
-go 1.18
+go 1.20
 
 require (......)
 ```

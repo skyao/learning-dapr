@@ -16,7 +16,7 @@ description: >
 在终端中执行以下命令：
 
 ```bash
-make go.mod
+make modtidy
 make modtidy-all
 make test
 make lint
@@ -41,7 +41,7 @@ make check-diff
 
 ![vscode-build-tags](images/vscode-build-tags.png)
 
-解决方式是设置 vs code 的 build tags（以及test tags），打开项目根目录下的 `.vscoee/settings.json`，加入以下内容:
+解决方式是设置 vs code 的 build tags（以及test tags），打开 （如果没有就新建）项目根目录下的 `.vscoee/settings.json`，加入以下内容:
 
 ```json
 {
@@ -53,4 +53,4 @@ make check-diff
 }
 ```
 
-重启 vscode 生效（不知道有没有其他不重启就能生效的方法）。
+正常就立即生效，错误消失。如果没有，则重启 vscode 看是否生效。

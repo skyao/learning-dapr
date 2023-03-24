@@ -16,25 +16,39 @@ description: >
 dapr提供了 `make lint`  target 来执行  golangci-lint， 如果没有安装 golangci-lint 则会报错：
 
 ```bash
-$ make lint
-# Due to https://github.com/golangci/golangci-lint/issues/580, we need to add --fix for windows
+$ cd dapr
+$ make lint       
 golangci-lint run --timeout=20m
-make: golangci-lint: Command not found
-make: *** [Makefile:72: lint] Error 127
+make: golangci-lint: No such file or directory
+make: *** [Makefile:341: lint] Error 127
 ```
 
-之前dapr用的是 v1.31 老版本，在2022年5月之后， dapr CI 中采用的是最新版本，具体是 golangci-lint 1.45.2。
+之前 dapr 用的是 v1.31 老版本，在2022年5月之后， dapr CI 中采用的是最新版本，具体是 golangci-lint *v1.51.2*。
 
-安装方式参考 https://golangci-lint.run/usage/install/ 。linux下执行如下命令：
+> TIPs:   如何知道 dapr 目前采用的是哪个版本的 golangci-lint？ 
+>
+> 请查看 dapr 仓库下的 Makefile 文件，找到下述内容：
+>
+> Please use golangci-lint version v1.51.2 , otherwise you might encounter errors.
+>
+> 查看 .github/workflows/dapr.yml 文件，找到下述内容：
+>
+> GOLANGCILINT_VER: "v1.51.2"
+
+安装方式参考 https://golangci-lint.run/usage/install/ 。在release页面找到对应版本，主要不要直接安装最新版本：
+
+https://github.com/golangci/golangci-lint/releases/tag/v1.51.2
+
+linux下执行如下命令：
 
 ```bash
-$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
-golangci/golangci-lint info checking GitHub for tag 'v1.45.2'
-golangci/golangci-lint info found version: 1.45.2 for v1.45.2/linux/amd64
+$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.51.2 # 特别注意这里一定要指定正确的版本
+golangci/golangci-lint info checking GitHub for tag 'v1.51.2'
 golangci/golangci-lint info installed /home/sky/work/soft/gopath/bin/golangci-lint
 
+
 $ golangci-lint --version
-golangci-lint has version 1.45.2 built from 8bdc4d3f on 2022-03-24T11:51:26Z
+golangci-lint has version 1.51.2 built from 3e8facb4 on 2023-02-19T21:43:54Z
 ```
 
 {{% alert title="切记" color="warning" %}}
@@ -46,19 +60,16 @@ golangci-lint 一定要安装对应的版本！
 在 m1 macbook 上， dapr之前使用的 1.31 版本发布较早，没有提供对 m1 （也就是darwin-arm64）的支持，但最新的dapr改用 1.45.2 版本之后就支持 arm64 了，所以可以用同样的方式安装：
 
 ```bash
-$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
-golangci/golangci-lint info checking GitHub for tag 'v1.45.2'
-golangci/golangci-lint info found version: 1.45.2 for v1.45.2/linux/amd64
+$ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.1
+golangci/golangci-lint info checking GitHub for tag 'v1.52.1'
+golangci/golangci-lint info found version: 1.52.1 for v1.52.1/linux/amd64
 golangci/golangci-lint info installed /home/sky/work/soft/gopath/bin/golangci-lint
-golangci/golangci-lint info checking GitHub for tag 'v1.45.2'
-golangci/golangci-lint info found version: 1.45.2 for v1.45.2/darwin/arm64
-golangci/golangci-lint info installed /Users/sky/work/soft/gopath/bin/golangci-lint
  
 $ golangci-lint --version
-golangci-lint has version 1.45.2 built from 8bdc4d3f on 2022-03-24T11:51:26Z
+golangci-lint has version 1.52.1 built with go1.20.2 from d92b38cc on 2023-03-21T19:48:38Z
 ```
 
-注意：golangci-lint  1.45.2 版本似乎对 go 有版本要求，我在 golang 1.17 版本下运行会报错：
+注意：golangci-lint  新版本似对 go 有版本要求，如果遇到报错，如我在 golang 1.17 版本下运行会报错：
 
 ```bash
 $ golangci-lint --version
@@ -73,7 +84,7 @@ $ go version
 go version go1.17.8 darwin/arm64
 ```
 
-升级 golang 到 1.18 就正常了。
+升级 golang 到新版本如 1.18  就正常了。
 
 ## gofumpt
 
@@ -91,10 +102,8 @@ tests/perf/utils/grpc_helpers.go:9               gofumpt    File is not `gofumpt
 
 ```bash
 $ go install mvdan.cc/gofumpt@latest
-
-go: downloading mvdan.cc/gofumpt v0.3.1
-go: downloading golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
-go: downloading github.com/google/go-cmp v0.5.7
+go: downloading golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+go: downloading golang.org/x/sys v0.0.0-20220829200755-d48e67d00261
 ```
 
 然后对有问题的文件执行 gofumpt :
