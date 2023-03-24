@@ -85,3 +85,23 @@ Events:
 
 - https://netapp-trident.readthedocs.io/en/stable-v18.07/kubernetes/operations/tasks/storage-classes.html
 - https://blog.zuolinux.com/2020/06/10/nfs-client-provisioner.html
+
+### sidecar 无法注入
+
+一般是发生在重新安装 dapr 之后，主要原因是直接执行了 `kubectl delete namespace dapr-tests` ，而没有先执行 `helm uninstall dapr -n dapr-tests`
+
+详细说明见：
+
+https://github.com/dapr/dapr/issues/4612
+
+### daprd启动时 sentry 证书报错
+
+daprd启动时报错退出，日志如下：
+
+```bash
+time="2022-12-04T01:35:44.198741493Z" level=info msg="sending workload csr request to sentry" app_id=service-a instance=service-a-8bbd5bf88-fxc6k scope=dapr.runtime.grpc.internal type=log ver=edge
+time="2022-12-04T01:35:44.207675954Z" level=fatal msg="failed to start internal gRPC server: error from authenticator CreateSignedWorkloadCert: error from sentry SignCertificate: rpc error: code = Unknown desc = error validating requester identity: csr validation failed: token/id mismatch. received id: dapr-tests:default" app_id=service-a instance=service-a-8bbd5bf88-fxc6k scope=dapr.runtime type=log ver=edge
+```
+
+这是没有执行 `make setup-disable-mtls` 的原因。
+

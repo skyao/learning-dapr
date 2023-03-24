@@ -17,7 +17,7 @@ https://github.com/dapr/dapr/tree/master/dapr
 
 ## 步骤一：安装Protoc
 
-目前 daprd 要求的版本是 [v3.14.0](https://github.com/protocolbuffers/protobuf/releases/tag/v3.14.0)。
+目前 daprd 要求的版本是 [v3.21.0](https://github.com/protocolbuffers/protobuf/releases/tag/v21.1)。
 
 ### linux-amd64 安装
 
@@ -31,7 +31,7 @@ sudo rm /usr/local/bin/protoc
 下载并解压缩之后，按照 readme.txt 文件的提示，复制bin文件和clude目录到合适的位置：
 
 ```bash
-$ unzip protoc-3.14.0-linux-x86_64.zip
+$ unzip protoc-21.1-linux-x86_64.zip
 
 $ sudo cp -r include/google/ /usr/local/include/
 # 需要设置权限可读和可执行，755
@@ -44,7 +44,7 @@ $ sudo chmod +x /usr/local/bin/protoc
 
 ```bash
 $ protoc --version
-libprotoc 3.14.0
+libprotoc 3.21.1
 ```
 
 ### Macos-amd64 安装
