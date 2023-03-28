@@ -17,7 +17,7 @@ https://github.com/dapr/dapr/tree/master/dapr
 
 ## 步骤一：安装Protoc
 
-目前 daprd 要求的版本是 [[v3.21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12) ](https://github.com/protocolbuffers/protobuf/releases/tag/v21.1)。
+目前 daprd 要求的版本是 [[v3.21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12) ](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12)。
 
 ### linux-amd64 安装
 
@@ -50,7 +50,9 @@ libprotoc 3.21.12
 
 ### Macos-amd64 安装
 
-> 备注：未更新，我没有intel芯片的macos了。
+> 备注：不再更新，我已经没有intel cpu的macos了。
+
+### Macos-arm64 安装
 
 如果之前安装过其他，则需要删除已经安装的版本：
 
@@ -59,29 +61,12 @@ sudo rm -rf /usr/local/include/google/protobuf/
 sudo rm /usr/local/bin/protoc
 ```
 
-下载 protoc-3.14.0-osx-x86_64.zip 文件，解压缩之后
+下载 pr
 
 ```bash
-cd protoc-3.14.0-osx-x86_64
-sudo cp -r include/ /usr/local/include/
-# 需要设置权限可读和可执行，755
-$ sudo chmod -R 755 /usr/local/include/google
-$ sudo cp bin/protoc /usr/local/bin/
-$ sudo chmod +x /usr/local/bin/protoc
-```
-
-protoc 安装完成之后，验证一下版本：
-
-```bash
-$ protoc --version
-libprotoc 3.14.0
-```
-
-### Macos-arm64 安装
-
-```bash
-cd protoc-21.1-osx-aarch_64
-sudo cp -r include/ /usr/local/include/
+$ wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-osx-aarch_64.zip
+$ unzip protoc-21.12-osx-aarch_64.zip
+$ sudo cp -r include/ /usr/local/include/
 # 需要设置权限可读和可执行，755
 $ sudo chmod -R 755 /usr/local/include/google
 $ sudo cp bin/protoc /usr/local/bin/
@@ -94,7 +79,7 @@ protoc 安装完成之后，验证一下版本：
 
 ```bash
 $ protoc --version
-libprotoc 3.21.1
+libprotoc 3.21.12
 ```
 
 
