@@ -7,17 +7,13 @@ description: >
   安装Protoc用于从proto文件生成代码
 ---
 
-{{% pageinfo %}}
-Dapr 新版本中对proto文件的代码生成有了极大改进，非常方便。
-{{% /pageinfo %}}
-
-Dapr 新版本中proto文件的代码生成可以简单参考官方 README 文件的说明:
+Dapr 中proto文件的代码生成可以简单参考官方 README 文件的说明:
 
 https://github.com/dapr/dapr/tree/master/dapr
 
 ## 步骤一：安装Protoc
 
-目前 daprd 要求的版本是 [[v3.21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12) ](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12)。
+目前 daprd 要求的版本是 [v3.21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12)。
 
 ### linux-amd64 安装
 
@@ -31,14 +27,16 @@ sudo rm /usr/local/bin/protoc
 下载并解压缩之后，按照 readme.txt 文件的提示，复制bin文件和clude目录到合适的位置：
 
 ```bash
-$ wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-linux-x86_64.zip
-$ unzip protoc-21.12-linux-x86_64.zip
+mkdir ~/temp
+cd ~/temp
+wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-linux-x86_64.zip
+unzip protoc-21.12-linux-x86_64.zip
 
-$ sudo cp -r include/google/ /usr/local/include/
+sudo cp -r include/google/ /usr/local/include/
 # 需要设置权限可读和可执行，755
-$ sudo chmod -R 755 /usr/local/include/google
-$ sudo cp bin/protoc /usr/local/bin/
-$ sudo chmod +x /usr/local/bin/protoc
+sudo chmod -R 755 /usr/local/include/google
+sudo cp bin/protoc /usr/local/bin/
+sudo chmod +x /usr/local/bin/protoc
 ```
 
 验证安装结果：
@@ -50,7 +48,7 @@ libprotoc 3.21.12
 
 ### Macos-amd64 安装
 
-> 备注：不再更新，我已经没有intel cpu的macos了。
+> 备注：不再更新，我已经没有 intel cpu 的 macos 了。
 
 ### Macos-arm64 安装
 
@@ -64,13 +62,13 @@ sudo rm /usr/local/bin/protoc
 下载 pr
 
 ```bash
-$ wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-osx-aarch_64.zip
-$ unzip protoc-21.12-osx-aarch_64.zip
-$ sudo cp -r include/ /usr/local/include/
+wget https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-osx-aarch_64.zip
+unzip protoc-21.12-osx-aarch_64.zip
+sudo cp -r include/ /usr/local/include/
 # 需要设置权限可读和可执行，755
-$ sudo chmod -R 755 /usr/local/include/google
-$ sudo cp bin/protoc /usr/local/bin/
-$ sudo chmod +x /usr/local/bin/protoc
+sudo chmod -R 755 /usr/local/include/google
+sudo cp bin/protoc /usr/local/bin/
+sudo chmod +x /usr/local/bin/protoc
 ```
 
 如果遇到macos禁止protoc运行，在设置中找到 "security & Privacy"，会有 protoc 运行的提示，点击容许即可。
@@ -82,18 +80,23 @@ $ protoc --version
 libprotoc 3.21.12
 ```
 
-
-
 ## 步骤二：初始化proto工具
 
 安装 protoc-gen-go 和 protoc-gen-go，dapr的 make file 为此准备了专门的命令 `init-proto`：
 
 ```bash
-# 进入 dapr/dapr 仓库
-$ cd dapr 
+cd ~/work/code/dapr/dapr 
+make init-proto
+```
+
+```bash
 $ make init-proto
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
+go: downloading google.golang.org/protobuf v1.28.1
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
+go: downloading google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
+go: downloading google.golang.org/grpc v1.2.0
+go: downloading google.golang.org/protobuf v1.27.1
 ```
 
 ## 步骤三：从proto生成代码
@@ -101,10 +104,17 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
 终于可以开始正式的代码生成了，dapr的 make file 也为此准备了专门的命令 `gen-proto`：
 
 ```bash
-# 进入 dapr/dapr 仓库
-$ cd dapr 
+cd ~/work/code/dapr/dapr 
+make gen-proto
+```
+
+
+
+```bash
 $ make gen-proto
+
 protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc_opt=require_unimplemented_servers=false,module=github.com/dapr/dapr ./dapr/proto/common/v1/*.proto
+protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc_opt=require_unimplemented_servers=false,module=github.com/dapr/dapr ./dapr/proto/components/v1/*.proto
 protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc_opt=require_unimplemented_servers=false,module=github.com/dapr/dapr ./dapr/proto/internals/v1/*.proto
 protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc_opt=require_unimplemented_servers=false,module=github.com/dapr/dapr ./dapr/proto/operator/v1/*.proto
 protoc --go_out=. --go_opt=module=github.com/dapr/dapr --go-grpc_out=. --go-grpc_opt=require_unimplemented_servers=false,module=github.com/dapr/dapr ./dapr/proto/placement/v1/*.proto

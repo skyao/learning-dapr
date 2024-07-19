@@ -7,9 +7,9 @@ description: >
   client app start流程源码分析
 ---
 
+## 客户端代码实现
 
-
-## DaprWorkflowClient
+### DaprWorkflowClient
 
 Dapr java SDK 中的 DaprWorkflowClient，包裹了 durabletask java sdk 的 DurableTaskClient：
 
@@ -45,7 +45,7 @@ scheduleNewWorkflow()方法代理给了 DurableTaskClient 的 scheduleNewOrchest
   }
   ```
 
-## DurableTaskClient 和 DurableTaskGrpcClient
+### DurableTaskClient 和 DurableTaskGrpcClient
 
 这两个类在 durabletask java sdk 中。
 
@@ -122,8 +122,6 @@ message CreateInstanceRequest {
 }
 ```
 
-备注：这个version字段不知道是做什么的？后面注意看看细节。
-
 CreateInstanceResponse 信息的定义，很简单，只有一个 instanceId 字段。
 
 ```protobuf
@@ -132,9 +130,13 @@ message CreateInstanceResponse {
 }
 ```
 
-## 代码实现
+## 服务器端代码实现
 
-StartInstance 的代码实现在 `backend/executor.go` 中:
+客户端和服务器端走的是 durable task 定义的 TaskHubSidecarService，这里特别要注意的是：不是 dapr API！
+
+### StartInstance() 方法
+
+StartInstance() 方法的服务器端代码实现在 durabletask-go 仓库的 `backend/executor.go` 文件中:
 
 ```go
 func (g *grpcExecutor) StartInstance(ctx context.Context, req *protos.CreateInstanceRequest) (*protos.CreateInstanceResponse, error) {
@@ -151,69 +153,11 @@ func (g *grpcExecutor) StartInstance(ctx context.Context, req *protos.CreateInst
 }
 ```
 
-### StartNewCreateOrchestrationSpan() 方法
-
-helpers.StartNewCreateOrchestrationSpan() 方法的实现：
-
-```go
-func StartNewCreateOrchestrationSpan(
-	ctx context.Context, name string, version string, instanceID string,
-) (context.Context, trace.Span) {
-	attributes := []attribute.KeyValue{
-		{Key: "durabletask.type", Value: attribute.StringValue("orchestration")},
-		{Key: "durabletask.task.name", Value: attribute.StringValue(name)},
-		{Key: "durabletask.task.instance_id", Value: attribute.StringValue(instanceID)},
-	}
-	return startNewSpan(ctx, "create_orchestration", name, version, attributes, trace.SpanKindClient, time.Now().UTC())
-}
-```
-
-startNewSpan()的实现：
-
-```go
-func startNewSpan(
-	ctx context.Context,
-	taskType string,
-	taskName string,
-	taskVersion string,
-	attributes []attribute.KeyValue,
-	kind trace.SpanKind,
-	timestamp time.Time,
-) (context.Context, trace.Span) {
-	var spanName string
-	if taskVersion != "" {
-		spanName = taskType + "||" + taskName + "||" + taskVersion
-		attributes = append(attributes, attribute.KeyValue{
-			Key:   "durabletask.task.version",
-			Value: attribute.StringValue(taskVersion),
-		})
-	} else if taskName != "" {
-		spanName = taskType + "||" + taskName
-	} else {
-		spanName = taskType
-	}
-
-	var span trace.Span
-	ctx, span = tracer.Start(
-		ctx,
-		spanName,
-		trace.WithSpanKind(kind),
-		trace.WithTimestamp(timestamp),
-		trace.WithAttributes(attributes...),
-	)
-	return ctx, span
-}
-```
-
-构建 spanName 的逻辑比较复杂，因为 taskVersion 和 taskName 可能为空（按说 taskName 不能为空）
-
-- spanName = `taskType + "||" + taskName + "||" + taskVersion`
-- spanName = `taskType + "||" + taskName`
-- spanName = `taskType`
+这里创建一个 ExecutionStartedEvent，然后调用 backend 的 CreateOrchestrationInstance() 方法。
 
 ### NewExecutionStartedEvent() 方法
 
-这行代码的作用是构建一个 ExecutionStartedEvent 事件：
+这行代码的作用是构建一个带有 ExecutionStartedEvent 事件的 HistoryEvent：
 
 ```go
 e := helpers.NewExecutionStartedEvent(req.Name, instanceID, req.Input, nil, helpers.TraceContextFromSpan(span))
@@ -248,7 +192,7 @@ func NewExecutionStartedEvent(
 }
 ```
 
-备注：这里没有用到 version 字段
+这个数据结构有点复杂，HistoryEvent 携带一个 ExecutionStartedEvent 类型（grpc 的 oneof）。
 
 ### CreateOrchestrationInstance() 方法
 
@@ -271,7 +215,9 @@ type Backend interface {
 }
 ```
 
-### daprd 的实现
+这个 backend 可以有多种实现，durabletask-go 只负责进行调用，容许注入不同的实现。在 dapr workflow中，注入的是基于 dapr actor 的实现。
+
+### daprd backend 的初始化
 
 在 daprd sidecar 的代码实现中，这个 backend 是这样构建的，代码在 dapr/dapr 仓库的 `pkg/runtime/wfengine/wfengine.go` :
 
@@ -327,7 +273,7 @@ func (wfe *WorkflowEngine) ConfigureGrpcExecutor() {
 	})
 ```
 
-### ActorBackend
+### ActorBackend 的实现
 
 ActorBackend 实现了 durabletask-go 定义的 Backend 接口：
 
@@ -407,7 +353,33 @@ func (abe *ActorBackend) CreateOrchestrationInstance(ctx context.Context, e *bac
 _, err = abe.actorRuntime.Call(ctx, req)
 ```
 
-这是通过 actor 来进行调用。
+这表明在 dapr 的 workflow backend 实现中，workflow 的调用是通过 dapr actor 来进行的。
+
+然后注意这里的 req 的数据组装过程
+
+```go
+const	CreateWorkflowInstanceMethod = "CreateWorkflowInstance"
+
+	requestBytes, err := json.Marshal(CreateWorkflowInstanceRequest{
+		Policy:          policy,
+		StartEventBytes: eventData,
+	})
+
+	req := internalsv1pb.NewInternalInvokeRequest(CreateWorkflowInstanceMethod).
+		WithActor(abe.config.workflowActorType, workflowInstanceID).
+		WithData(requestBytes).
+		WithContentType(invokev1.JSONContentType)
+```
+
+actor id 被设置为当前 workflow 的 InstanceID，actor type 是配置的，具体的组装方式如下：
+
+```go
+		workflowActorType: actors.InternalActorTypePrefix + utils.GetNamespaceOrDefault(defaultNamespace) + utils.DotDelimiter + appID + utils.DotDelimiter + WorkflowNameLabelKey,
+```
+
+Method 被设置为 CreateWorkflowInstance，数据 requestBytes 是将整个 HistoryEvent 用 json 序列化之后的字节数组。
+
+### ActorRuntime 的初始化
 
 其中 ActorRuntime 是这样设置进来的：
 
@@ -442,7 +414,7 @@ func (a *DaprRuntime) initWorkflowEngine(ctx context.Context) error {
 
 ### actorRuntime的实现
 
-ActorRuntime 的 interface 定义：
+ActorRuntime 的 interface 定义在文件 `pkg/actors/actors.go` 中：
 
 ```go
 // ActorRuntime is the main runtime for the actors subsystem.
@@ -467,45 +439,49 @@ type Actors interface {
 }
 ```
 
-Call()方法的代码实现：
+实现代码也在同一个文件中，actorsRuntime struct：
 
 ```go
-func (a *actorsRuntime) Call(ctx context.Context, req *internalv1pb.InternalInvokeRequest) (res *internalv1pb.InternalInvokeResponse, err error) {
-	err = a.placement.WaitUntilReady(ctx)
+type actorsRuntime struct {
+}	
+```
+
+actorsRuntime 的Call()方法的代码实现：
+
+```go
+func (a *actorsRuntime) Call(ctx context.Context, req *invokev1.InvokeMethodRequest) (*invokev1.InvokeMethodResponse, error) {
+	err := a.placement.WaitUntilReady(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to wait for placement readiness: %w", err)
 	}
 
-	// Do a lookup to check if the actor is local
-	actor := req.GetActor()
-	actorType := actor.GetActorType()
+	actor := req.Actor()
 	lar, err := a.placement.LookupActor(ctx, internal.LookupActorRequest{
-		ActorType: actorType,
+		ActorType: actor.GetActorType(),
 		ActorID:   actor.GetActorId(),
+		Revision:  int(actor.GetRevision()),
 	})
 	if err != nil {
 		return nil, err
 	}
-
+	var resp *invokev1.InvokeMethodResponse
 	if a.isActorLocal(lar.Address, a.actorsConfig.Config.HostAddress, a.actorsConfig.Config.Port) {
-		// If this is an internal actor, we call it using a separate path
-		internalAct, ok := a.getInternalActor(actorType, actor.GetActorId())
-		if ok {
-			res, err = a.callInternalActor(ctx, req, internalAct)
-		} else {
-			res, err = a.callLocalActor(ctx, req)
-		}
+		resp, err = a.callLocalActor(ctx, req)
 	} else {
-		res, err = a.callRemoteActorWithRetry(ctx, retry.DefaultLinearRetryCount, retry.DefaultLinearBackoffInterval, a.callRemoteActor, lar.Address, lar.AppID, req)
+		resp, err = a.callRemoteActorWithRetry(ctx, retry.DefaultLinearRetryCount, retry.DefaultLinearBackoffInterval, a.callRemoteActor, lar.Address, lar.AppID, req)
 	}
 
 	if err != nil {
-		if res != nil && actorerrors.Is(err) {
-			return res, err
+		if resp != nil && actorerrors.Is(err) {
+			return resp, err
+		}
+
+		if resp != nil {
+			resp.Close()
 		}
 		return nil, err
 	}
-	return res, nil
+	return resp, nil
 }
 ```
 
@@ -516,113 +492,4 @@ func (a *actorsRuntime) Call(ctx context.Context, req *internalv1pb.InternalInvo
 		ActorType: actorType,
 		ActorID:   actor.GetActorId(),
 	})
-```
-
-### placement 的实现
-
-PlacementService 的接口定义：
-
-```go
-type PlacementService interface {
-	io.Closer
-
-	Start(context.Context) error
-	WaitUntilReady(ctx context.Context) error
-	LookupActor(ctx context.Context, req LookupActorRequest) (LookupActorResponse, error)
-	AddHostedActorType(actorType string, idleTimeout time.Duration) error
-	ReportActorDeactivation(ctx context.Context, actorType, actorID string) error
-
-	SetHaltActorFns(haltFn HaltActorFn, haltAllFn HaltAllActorsFn)
-	SetOnAPILevelUpdate(fn func(apiLevel uint32))
-	SetOnTableUpdateFn(fn func())
-
-	// PlacementHealthy returns true if the placement service is healthy.
-	PlacementHealthy() bool
-	// StatusMessage returns a custom status message.
-	StatusMessage() string
-}
-```
-
-代码实现在 `pkg/actors/placement/placement.go` 中：
-
-```go
-// LookupActor resolves to actor service instance address using consistent hashing table.
-func (p *actorPlacement) LookupActor(ctx context.Context, req internal.LookupActorRequest) (internal.LookupActorResponse, error) {
-	// Retry here to allow placement table dissemination/rebalancing to happen.
-	policyDef := p.resiliency.BuiltInPolicy(resiliency.BuiltInActorNotFoundRetries)
-	policyRunner := resiliency.NewRunner[internal.LookupActorResponse](ctx, policyDef)
-	return policyRunner(func(ctx context.Context) (res internal.LookupActorResponse, rErr error) {
-		rAddr, rAppID, rErr := p.doLookupActor(ctx, req.ActorType, req.ActorID)
-		if rErr != nil {
-			return res, fmt.Errorf("error finding address for actor %s/%s: %w", req.ActorType, req.ActorID, rErr)
-		} else if rAddr == "" {
-			return res, fmt.Errorf("did not find address for actor %s/%s", req.ActorType, req.ActorID)
-		}
-		res.Address = rAddr
-		res.AppID = rAppID
-		return res, nil
-	})
-}
-```
-
-doLookupActor():
-
-```go
-func (p *actorPlacement) doLookupActor(ctx context.Context, actorType, actorID string) (string, string, error) {
-  // 加读锁
-	p.placementTableLock.RLock()
-	defer p.placementTableLock.RUnlock()
-
-	if p.placementTables == nil {
-		return "", "", errors.New("placement tables are not set")
-	}
-
-  // 先根据 actorType 找到符合要求的 Entries
-	t := p.placementTables.Entries[actorType]
-	if t == nil {
-		return "", "", nil
-	}
-	host, err := t.GetHost(actorID)
-	if err != nil || host == nil {
-		return "", "", nil //nolint:nilerr
-	}
-	return host.Name, host.AppID, nil
-}
-```
-
-p.placementTables 的结构体定义如下：
-
-```go
-type ConsistentHashTables struct {
-	Version string
-	Entries map[string]*Consistent
-}
-```
-
-Consistent 的结构体定义如下：
-
-```go
-// Consistent represents a data structure for consistent hashing.
-type Consistent struct {
-	hosts             map[uint64]string
-	sortedSet         []uint64
-	loadMap           map[string]*Host
-	totalLoad         int64
-	replicationFactor int
-
-	sync.RWMutex
-}
-```
-
-`host, err := t.GetHost(actorID)` 代码对应的 GetHost() 方法：
-
-```go
-func (c *Consistent) GetHost(key string) (*Host, error) {
-	h, err := c.Get(key)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.loadMap[h], nil
-}
 ```
